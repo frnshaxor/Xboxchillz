@@ -1,0 +1,22 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
+
+Route::get('/', function () {
+    return view('welcome');
+});
+
+// Sandbox-only probe. Remove before the production cutover.
+Route::get('/migration-readiness', function () {
+    $tables = ['users', 'categories', 'videos', 'access_tokens', 'payment_orders', 'settings', 'analytics_events', 'activity_logs', 'jobs'];
+
+    return response()->json([
+        'application' => config('app.name'),
+        'environment' => app()->environment(),
+        'database' => config('database.default'),
+        'ready' => collect($tables)->every(fn (string $table) => Schema::hasTable($table)),
+        'tables' => collect($tables)->mapWithKeys(fn (string $table) => [$table => Schema::hasTable($table)]),
+        'note' => 'Sandbox only: no production data or media is read by this application.',
+    ]);
+})->name('sandbox.readiness');

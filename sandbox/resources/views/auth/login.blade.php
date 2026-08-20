@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="id"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Login admin · Arsip Layar Sandbox</title>
+<style>body{margin:0;background:#101214;color:#eee;font:16px system-ui}main{max-width:430px;margin:12vh auto;padding:24px}.card{background:#191c20;border:1px solid #30343a;border-radius:12px;padding:24px}label,input,button{display:block;width:100%;box-sizing:border-box}label{margin:14px 0 6px}input,button{padding:11px;border-radius:7px;border:1px solid #535860}button{margin-top:18px;background:#d96b45;color:#17110d;font-weight:700;cursor:pointer}.error{color:#ffad9b}a{color:#f4a582}</style>
+<main><div class="card"><p>Laravel sandbox · admin saja</p><h1>Masuk</h1>@if ($errors->any())<p class="error">{{ $errors->first() }}</p>@endif
+<form method="post" action="{{ route('login.store') }}">@csrf<label>Email</label><input name="email" type="email" value="{{ old('email') }}" required autofocus><label>Kata sandi</label><input name="password" type="password" required><button>Masuk ke panel</button></form><p><a href="{{ route('catalog.index') }}">Kembali ke katalog</a></p></div></main>
