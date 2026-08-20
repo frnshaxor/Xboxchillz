@@ -34,6 +34,91 @@
   }
   const fd = (obj) => { const f = new FormData(); Object.entries(obj).forEach(([k, v]) => f.append(k, v)); return f; };
 
+  // ---------- Toast notification system ----------
+  function ensureToastContainer() {
+    let c = document.getElementById('toast-container');
+    if (!c) { c = document.createElement('div'); c.id = 'toast-container'; document.body.appendChild(c); }
+    return c;
+  }
+  function showToast(message, type = 'info', durationMs = 3500) {
+    const container = ensureToastContainer();
+    const toast = document.createElement('div');
+    toast.className = 'toast toast-' + type;
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    const icons = { success: '✓', error: '✕', info: 'ℹ', warning: '⚠' };
+    toast.innerHTML = '<span class="toast-icon">' + (icons[type] || icons.info) + '</span><span class="toast-msg">' + message + '</span>';
+    container.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('toast-show'));
+    setTimeout(() => { toast.classList.remove('toast-show'); toast.classList.add('toast-hide'); setTimeout(() => toast.remove(), 300); }, durationMs);
+  }
+
+  // ---------- Gallery search (client-side) ----------
+  function initGallerySearch() {
+    const gallery = document.querySelector('.gallery');
+    if (!gallery) return;
+    const cards = Array.from(gallery.querySelectorAll('.card'));
+    if (!cards.length) return;
+    const filtersBar = document.querySelector('.filters');
+    if (!filtersBar) return;
+    const searchWrap = document.createElement('div');
+    searchWrap.className = 'gallery-search';
+    searchWrap.innerHTML = '<input type="search" placeholder="Cari video..." aria-label="Cari video" class="gallery-search-input" data-testid="gallery-search">';
+    filtersBar.parentNode.insertBefore(searchWrap, filtersBar.nextSibling);
+    const input = searchWrap.querySelector('input');
+    input.addEventListener('input', function() {
+      const q = this.value.toLowerCase().trim();
+      cards.forEach(card => {
+        const title = (card.querySelector('h3')?.textContent || '').toLowerCase();
+        const cat = (card.querySelector('.kick')?.textContent || '').toLowerCase();
+        const match = !q || title.includes(q) || cat.includes(q);
+        card.style.display = match ? '' : 'none';
+      });
+      // Update empty state
+      let emptyMsg = gallery.parentNode.querySelector('.gallery-empty-dynamic');
+      const visibleCount = cards.filter(c => c.style.display !== 'none').length;
+      if (visibleCount === 0 && q) {
+        if (!emptyMsg) {
+          emptyMsg = document.createElement('div');
+          emptyMsg.className = 'gallery-empty-dynamic';
+          emptyMsg.innerHTML = '<p class="muted" style="text-align:center;padding:40px 0">Tidak ada video yang cocok dengan pencarian.</p>';
+          gallery.parentNode.insertBefore(emptyMsg, gallery.nextSibling);
+        }
+      } else if (emptyMsg) {
+        emptyMsg.remove();
+      }
+    });
+  }
+
+  // ---------- Keyboard shortcuts ----------
+  function initKeyboardShortcuts(state) {
+    if (!state.admin) return;
+    document.addEventListener('keydown', function(e) {
+      // Don't trigger in inputs
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (ctrl && e.key === 'u') { e.preventDefault(); location.href = '?page=admin'; }
+      if (ctrl && e.key === 'k') { e.preventDefault(); const s = document.querySelector('.gallery-search-input'); if (s) s.focus(); }
+      if (e.key === '?') { e.preventDefault(); toggleShortcutHelp(); }
+      if (e.key === 'Escape') { const oh = document.getElementById('shortcut-overlay'); if (oh) oh.remove(); }
+    });
+  }
+  function toggleShortcutHelp() {
+    let oh = document.getElementById('shortcut-overlay');
+    if (oh) { oh.remove(); return; }
+    oh = document.createElement('div');
+    oh.id = 'shortcut-overlay';
+    oh.innerHTML = '<div class="shortcut-card"><button class="shortcut-close" onclick="this.closest(\'#shortcut-overlay\').remove()">&times;</button>' +
+      '<h3>Keyboard Shortcuts</h3><dl>' +
+      '<dt><kbd>Ctrl</kbd>+<kbd>U</kbd></dt><dd>Buka panel admin</dd>' +
+      '<dt><kbd>Ctrl</kbd>+<kbd>K</kbd></dt><dd>Cari video</dd>' +
+      '<dt><kbd>?</kbd></dt><dd>Tampilkan shortcut ini</dd>' +
+      '<dt><kbd>Esc</kbd></dt><dd>Tutup overlay</dd>' +
+      '</dl></div>';
+    document.body.appendChild(oh);
+    oh.addEventListener('click', function(e) { if (e.target === oh) oh.remove(); });
+  }
+
   // ---------- Boot Vue enhancements ----------
   async function boot() {
     // Core navigation and access UI must not depend on third-party CDN scripts.
@@ -43,6 +128,7 @@
     initUploadProgress();
     initTokenModal();
     initPlyr();
+    initGallerySearch();
 
     const state = await api('state').catch(() => ({ csrf: '', theme: 'obsidian', site: 'Arsip Layar', admin: false }));
     document.documentElement.dataset.theme = state.theme || 'obsidian';
@@ -59,6 +145,7 @@
 
     initRetentionTracker(state.csrf);
     initMidtransPurchase(state.csrf);
+    initKeyboardShortcuts(state);
     if (state.admin && location.search.includes('page=admin')) loadPaymentOrders();
 
     // The payment form, token modal, and tabs remain usable without Vue.
@@ -100,8 +187,8 @@
             const body = { csrf: state.csrf, chat_id: chatInput.value, enabled: enabled.value ? '1' : '0' };
             if (tokenInput.value) body.token = tokenInput.value.trim();
             const r = await api('telegram_save', 'POST', fd(body));
-            if (r.ok) { msg.value = 'Pengaturan Telegram disimpan.'; tokenInput.value = ''; await load(); }
-            else err.value = r.error || 'Gagal menyimpan';
+            if (r.ok) { msg.value = 'Pengaturan Telegram disimpan.'; showToast('Telegram tersimpan', 'success'); tokenInput.value = ''; await load(); }
+            else { err.value = r.error || 'Gagal menyimpan'; showToast('Gagal menyimpan Telegram', 'error'); }
           } catch (e) { err.value = 'Kesalahan: ' + e.message; }
           finally { busy.value = false; }
         }
@@ -319,7 +406,7 @@
           saving.value = true; msg.value = '';
           try {
             const r = await api('watermark', 'POST', fd({ csrf: state.csrf, text: text.value, position: position.value, opacity: opacity.value }));
-            if (r.ok) msg.value = 'Watermark disimpan. Video baru & yang ditonton berikutnya akan menampilkan teks ini.';
+            if (r.ok) { msg.value = 'Watermark disimpan.'; showToast('Watermark disimpan', 'success'); }
           } finally { saving.value = false; }
         }
         return { text, position, opacity, positions, save, saving, msg };
@@ -401,13 +488,22 @@
 
   function mountAnalytics(state) {
     const el = $('#analytics-mount'); if (!el) return;
-    const { createApp, ref, onMounted } = Vue;
+    const { createApp, ref, reactive, onMounted } = Vue;
     createApp({
       setup() {
         const d = ref(null); const days = ref(30); const loading = ref(false);
+        const videoHeatmap = reactive({ videoId: 0, data: [], duration: 0, loading: false });
         async function load() {
           loading.value = true;
           try { d.value = await api('insights&days=' + days.value); } finally { loading.value = false; }
+        }
+        async function loadVideoHeatmap(vid) {
+          videoHeatmap.loading = true; videoHeatmap.videoId = vid; videoHeatmap.data = []; videoHeatmap.duration = 0;
+          try {
+            const r = await api('heatmap_data&video_id=' + vid);
+            videoHeatmap.data = r.heatmap || [];
+            videoHeatmap.duration = r.duration || 0;
+          } catch (e) {} finally { videoHeatmap.loading = false; }
         }
         onMounted(load);
         const days_list = [7, 30, 90];
@@ -415,7 +511,9 @@
         function heatLevel(val, max) { if (!max || !val) return 0; const p = val / max; if (p >= 0.75) return 4; if (p >= 0.5) return 3; if (p >= 0.25) return 2; return 1; }
         function heatmapMax(h) { let m = 0; for (const row of h || []) for (const c of row) if (c > m) m = c; return m; }
         function retentionPct(r) { if (!r.duration_sec || !r.avg_sec) return 0; return Math.min(100, Math.round((r.avg_sec / r.duration_sec) * 100)); }
-        return { d, days, days_list, loading, load, dow_labels, heatLevel, heatmapMax, retentionPct };
+        function hmBarMax() { let m = 0; for (const h of videoHeatmap.data) if (h.total > m) m = h.total; return m; }
+        function fmtSec(s) { const m = Math.floor(s / 60); const sec = s % 60; return m + ':' + String(sec).padStart(2, '0'); }
+        return { d, days, days_list, loading, load, dow_labels, heatLevel, heatmapMax, retentionPct, videoHeatmap, loadVideoHeatmap, hmBarMax, fmtSec };
       },
       template: `
         <div>
@@ -427,8 +525,8 @@
                       @click="days=n;load()">{{n}} hari</button>
             </span>
           </div>
-          <div v-if="loading" class="muted" style="padding:20px">Memuat…</div>
-          <div v-if="d">
+          <div v-if="loading" class="skeleton-wrap"><div class="skeleton skeleton-card" style="height:120px"></div><div class="skeleton skeleton-card" style="height:200px;margin-top:14px"></div></div>
+          <div v-if="d && !loading">
             <div class="metric-grid">
               <div class="metric"><div class="k">Pengunjung</div><strong>{{d.metrics.visitors||0}}</strong><small>unik (harian)</small></div>
               <div class="metric"><div class="k">Total kunjungan</div><strong>{{d.metrics.page_views||0}}</strong><small>page views</small></div>
@@ -461,13 +559,28 @@
               <div class="bars" v-if="d.retention.length">
                 <div class="bar" v-for="r in d.retention" :key="r.id">
                   <div>
-                    <div style="color:var(--ink)">{{r.title}}</div>
+                    <div style="color:var(--ink);display:flex;justify-content:space-between;align-items:center;gap:8px">
+                      <span>{{r.title}}</span>
+                      <button class="ghost small" @click="loadVideoHeatmap(r.id)" style="padding:4px 10px;font-size:10px">Heatmap</button>
+                    </div>
                     <div class="track"><div class="fill" :style="{width: retentionPct(r)+'%'}"></div></div>
                   </div>
                   <div class="num">{{retentionPct(r)}}% · {{r.samples||0}} sampel</div>
                 </div>
               </div>
               <p class="muted" v-else>Retention akan tampil setelah ada penonton.</p>
+            </div>
+
+            <!-- Video engagement heatmap -->
+            <div class="panel" v-if="videoHeatmap.videoId">
+              <h3>Engagement Heatmap — Video #{{videoHeatmap.videoId}}</h3>
+              <p class="muted" style="margin-bottom:14px;font-size:12px">Intensitas warna = jumlah penonton yang menonton detik tersebut. Bar tinggi = banyak yang tonton, bar pendek = banyak yang skip.</p>
+              <div v-if="videoHeatmap.loading" class="muted" style="padding:20px">Memuat heatmap…</div>
+              <div v-else-if="videoHeatmap.data.length" class="engagement-heatmap">
+                <div class="eh-track" :title="fmtSec(h.second_index) + ' — ' + h.total + ' views" v-for="h in videoHeatmap.data" :key="h.second_index"
+                     :style="{ height: Math.max(4, (h.total / hmBarMax()) * 80) + 'px', background: 'var(--accent)' }"></div>
+              </div>
+              <p class="muted" v-else>Belum ada data engagement untuk video ini.</p>
             </div>
 
             <div class="panel"><h3>Perangkat</h3>
@@ -492,13 +605,13 @@
           err.value = ''; msg.value = '';
           try {
             await api('2fa_enable', 'POST', fd({ csrf: state.csrf, code: codeInput.value }));
-            totpOn.value = true; setup.value = null; codeInput.value = ''; msg.value = '2FA berhasil diaktifkan.';
+            totpOn.value = true; setup.value = null; codeInput.value = ''; msg.value = '2FA berhasil diaktifkan.'; showToast('2FA diaktifkan', 'success');
           } catch (e) { err.value = 'Kode salah atau kedaluwarsa.'; }
         }
         async function disable2FA() {
           if (!confirm('Nonaktifkan 2FA?')) return;
           await api('2fa_disable', 'POST', fd({ csrf: state.csrf }));
-          totpOn.value = false; msg.value = '2FA dinonaktifkan.';
+          totpOn.value = false; msg.value = '2FA dinonaktifkan.'; showToast('2FA dinonaktifkan', 'warning');
         }
         function qrUrl(otpauth) {
           return 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(otpauth);
@@ -582,10 +695,10 @@
         const maintenance = ref(el.dataset.maintenance === '1');
         const backups = ref([]); const busy = ref(false); const msg = ref('');
         async function reload() { const r = await api('backup_list'); backups.value = r.items; }
-        async function doBackup() { busy.value = true; msg.value = ''; try { const r = await api('backup', 'POST', fd({ csrf: state.csrf })); if (r.ok) { msg.value = 'Backup dibuat: ' + r.file; await reload(); } else msg.value = 'Gagal: ' + (r.error || ''); } finally { busy.value = false; } }
-        async function toggleMaintenance() { maintenance.value = !maintenance.value; await api('maintenance', 'POST', fd({ csrf: state.csrf, on: maintenance.value ? '1' : '0' })); }
-        async function saveUpload() { const r = await api('upload_limit', 'POST', fd({ csrf: state.csrf, mb: uploadMb.value })); if (r.ok) msg.value = 'Batas upload disimpan: ' + r.mb + ' MB'; }
-        async function bustCache() { const r = await api('cache_bust', 'POST', fd({ csrf: state.csrf })); if (r.ok) msg.value = 'Cache di-refresh (v' + r.cache_ver + ')'; }
+        async function doBackup() { busy.value = true; msg.value = ''; try { const r = await api('backup', 'POST', fd({ csrf: state.csrf })); if (r.ok) { msg.value = 'Backup dibuat: ' + r.file; showToast('Backup berhasil: ' + r.file, 'success'); await reload(); } else { msg.value = 'Gagal: ' + (r.error || ''); showToast('Backup gagal', 'error'); } } finally { busy.value = false; } }
+        async function toggleMaintenance() { maintenance.value = !maintenance.value; await api('maintenance', 'POST', fd({ csrf: state.csrf, on: maintenance.value ? '1' : '0' })); showToast(maintenance.value ? 'Mode perawatan diaktifkan' : 'Mode perawatan dinonaktifkan', 'info'); }
+        async function saveUpload() { const r = await api('upload_limit', 'POST', fd({ csrf: state.csrf, mb: uploadMb.value })); if (r.ok) { msg.value = 'Batas upload disimpan: ' + r.mb + ' MB'; showToast('Batas upload: ' + r.mb + ' MB', 'success'); } }
+        async function bustCache() { const r = await api('cache_bust', 'POST', fd({ csrf: state.csrf })); if (r.ok) { msg.value = 'Cache di-refresh (v' + r.cache_ver + ')'; showToast('Cache di-refresh', 'success'); } }
         function human(n) { if (n > 1073741824) return (n / 1073741824).toFixed(2) + ' GB'; if (n > 1048576) return (n / 1048576).toFixed(1) + ' MB'; return (n / 1024).toFixed(0) + ' KB'; }
         onMounted(reload);
         return { uploadMb, maintenance, backups, busy, msg, doBackup, toggleMaintenance, saveUpload, bustCache, human };
@@ -660,6 +773,31 @@
     player.addEventListener('ended', () => {
       fetch('api.php?op=event', { method: 'POST', credentials: 'same-origin', body: fd({ csrf, event: 'video_complete', path: location.pathname + location.search, video_id: videoId, progress: Math.floor(player.duration || 0) }) });
     });
+    // --- Engagement heatmap: track which seconds are watched ---
+    const heatmapBatch = [];
+    let lastHmSecond = -1;
+    setInterval(() => {
+      if (player.paused || player.ended) return;
+      const sec = Math.floor(player.currentTime);
+      if (sec !== lastHmSecond) {
+        lastHmSecond = sec;
+        heatmapBatch.push(sec);
+        // Send batch every 15 seconds of unique seconds collected
+        if (heatmapBatch.length >= 15) {
+          const batch = heatmapBatch.splice(0, 15);
+          fetch('api.php?op=heatmap', { method: 'POST', credentials: 'same-origin', body: fd({ csrf, video_id: videoId, seconds: batch.join(',') }) });
+        }
+      }
+    }, 1000);
+    // Flush remaining on leave/end
+    function flushHeatmap() {
+      if (heatmapBatch.length > 0) {
+        fetch('api.php?op=heatmap', { method: 'POST', credentials: 'same-origin', body: fd({ csrf, video_id: videoId, seconds: heatmapBatch.join(',') }) });
+        heatmapBatch.length = 0;
+      }
+    }
+    player.addEventListener('ended', flushHeatmap);
+    window.addEventListener('beforeunload', flushHeatmap);
   }
 
   function initMidtransPurchase(csrf) {

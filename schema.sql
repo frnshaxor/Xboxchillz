@@ -135,3 +135,28 @@ CREATE TABLE IF NOT EXISTS payment_orders(
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX(status), INDEX(created_at), INDEX(token_id)
 );
+
+CREATE TABLE IF NOT EXISTS video_heatmap(
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  video_id INT NOT NULL,
+  viewer_hash CHAR(64) NOT NULL,
+  second_index SMALLINT UNSIGNED NOT NULL,
+  view_count SMALLINT UNSIGNED DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uk_video_viewer_sec (video_id, viewer_hash, second_index),
+  INDEX(video_id), INDEX(created_at)
+);
+
+CREATE TABLE IF NOT EXISTS webhook_retry(
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  source VARCHAR(30) NOT NULL DEFAULT 'midtrans',
+  payload TEXT NOT NULL,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  attempts TINYINT DEFAULT 0,
+  max_attempts TINYINT DEFAULT 5,
+  next_retry_at TIMESTAMP NULL,
+  last_error TEXT DEFAULT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX(status), INDEX(next_retry_at)
+);

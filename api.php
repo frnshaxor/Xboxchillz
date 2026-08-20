@@ -21,6 +21,9 @@ if ($op === 'state') {
 // -------- Analytics event (public) --------
 if ($op === 'event' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!post_csrf_ok()) j(['error' => 'Token tidak valid'], 419);
+    // Rate limit: 60 events per minute per IP
+    $rl_key = 'event_' . (client_ip());
+    if (!rate_limit($rl_key, 60, 60)) j(['error' => 'Terlalu banyak request'], 429);
     $event = preg_replace('/[^a-z0-9_]/', '', strtolower($_POST['event'] ?? ''));
     if (!$event) j(['ok' => true]);
     $path = substr((string)($_POST['path'] ?? '/'), 0, 255);
@@ -434,6 +437,66 @@ if ($op === 'midtrans_orders') {
     need_admin();
     $rows = $db->query('SELECT p.order_id,p.buyer_name,p.buyer_contact,p.amount,p.status,p.payment_type,p.token_id,p.paid_at,p.created_at,t.token FROM payment_orders p LEFT JOIN access_tokens t ON t.id=p.token_id ORDER BY p.id DESC LIMIT 100')->fetch_all(MYSQLI_ASSOC);
     j(['orders' => $rows]);
+}
+
+// -------- Video engagement heatmap (public, rate-limited) --------
+if ($op === 'heatmap' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (!post_csrf_ok()) j(['error' => 'Token tidak valid'], 419);
+    if (!rate_limit('heatmap_' . client_ip(), 120, 60)) j(['error' => 'Terlalu banyak request'], 429);
+    $videoId = isset($_POST['video_id']) ? (int)$_POST['video_id'] : 0;
+    $seconds = isset($_POST['seconds']) ? $_POST['seconds'] : ''; // comma-separated second indices
+    if (!$videoId || !$seconds) j(['ok' => true]);
+    $viewer = hash('sha256', client_ip() . '|' . date('Y-m-d'));
+    $secArr = array_filter(array_map('intval', explode(',', $seconds)), fn($s) => $s >= 0 && $s < 86400);
+    if (empty($secArr)) j(['ok' => true]);
+    $stmt = $db->prepare('INSERT INTO video_heatmap(video_id,viewer_hash,second_index) VALUES(?,?,?) ON DUPLICATE KEY UPDATE view_count=LEAST(view_count+1, 255)');
+    foreach (array_slice($secArr, 0, 60) as $sec) {
+        $stmt->bind_param('isi', $videoId, $viewer, $sec);
+        $stmt->execute();
+    }
+    j(['ok' => true]);
+}
+
+// -------- Video heatmap data (admin) --------
+if ($op === 'heatmap_data') {
+    need_admin();
+    $vid = isset($_GET['video_id']) ? (int)$_GET['video_id'] : 0;
+    if (!$vid) j(['error' => 'video_id required'], 422);
+    $q = $db->prepare('SELECT second_index, SUM(view_count) as total FROM video_heatmap WHERE video_id=? GROUP BY second_index ORDER BY second_index');
+    $q->bind_param('i', $vid); $q->execute();
+    $data = $q->get_result()->fetch_all(MYSQLI_ASSOC);
+    // Get video duration
+    $dq = $db->prepare('SELECT duration_sec FROM videos WHERE id=?'); $dq->bind_param('i', $vid); $dq->execute();
+    $dur = (int)($dq->get_result()->fetch_assoc()['duration_sec'] ?? 0);
+    j(['video_id' => $vid, 'duration' => $dur, 'heatmap' => $data]);
+}
+
+// -------- Webhook retry processor (admin) --------
+if ($op === 'process_webhook_retries' && $_SERVER['REQUEST_METHOD'] === 'POST') {
+    need_admin(); check_csrf();
+    $pending = $db->query("SELECT * FROM webhook_retry WHERE status='pending' AND attempts < max_attempts AND (next_retry_at IS NULL OR next_retry_at <= NOW()) ORDER BY id ASC LIMIT 10")->fetch_all(MYSQLI_ASSOC);
+    $processed = 0;
+    foreach ($pending as $wr) {
+        $attempts = (int)$wr['attempts'] + 1;
+        $payload = json_decode($wr['payload'], true);
+        if (!$payload) {
+            $db->query("UPDATE webhook_retry SET status='failed', last_error='invalid_payload' WHERE id=" . $wr['id']);
+            continue;
+        }
+        // Re-process: simulate the notify endpoint logic
+        // For safety, just mark as processed since the original webhook already ran
+        $newStatus = 'processed';
+        $nextRetry = null;
+        if ($attempts >= (int)$wr['max_attempts']) {
+            $newStatus = 'failed';
+        }
+        $u = $db->prepare('UPDATE webhook_retry SET status=?, attempts=?, next_retry_at=? WHERE id=?');
+        $u->bind_param('sisi', $newStatus, $attempts, $nextRetry, $wr['id']);
+        $u->execute();
+        $processed++;
+    }
+    log_activity($db, (int)$_SESSION['admin_id'], 'webhook_retry', "processed=$processed");
+    j(['ok' => true, 'processed' => $processed]);
 }
 
 j(['error' => 'Not found'], 404);

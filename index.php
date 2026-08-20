@@ -794,10 +794,20 @@ $midtransPrice = (int)setting($db, 'midtrans_token_price', '50000');
     <?php endwhile; ?>
   </div>
   <?php if ($videos->num_rows === 0): ?>
-    <div class="empty">
-      <span class="eyebrow">Empty archive</span>
-      <h2 style="margin-top:12px">Belum ada video.</h2>
-      <p class="muted" style="margin:12px auto 0">Masuk ke panel dan unggah karya pertama Anda.</p>
+    <div class="empty-state">
+      <svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="100" cy="100" r="80" stroke="var(--border)" stroke-width="2" stroke-dasharray="6 4"/>
+        <polygon points="85,65 85,135 140,100" fill="var(--accent)" opacity="0.3"/>
+        <polygon points="85,65 85,135 140,100" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <span class="eyebrow">Koleksi kosong</span>
+      <h2>Belum ada video.</h2>
+      <p>Masuk ke panel admin dan unggah karya pertama Anda untuk memulai arsip.</p>
+      <?php if (admin()): ?>
+        <a href="?page=admin" class="button"><span class="material-symbols-rounded">cloud_upload</span> Unggah Video</a>
+      <?php else: ?>
+        <a href="?page=login" class="button"><span class="material-symbols-rounded">login</span> Masuk ke Panel</a>
+      <?php endif; ?>
     </div>
   <?php else: ?>
   <section class="gallery" data-testid="gallery">
@@ -823,5 +833,13 @@ $midtransPrice = (int)setting($db, 'midtrans_token_price', '50000');
   <?php endif; ?>
 </div></main>
 <?php endif; ?>
+<script>
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+</script>
 </body>
 </html>

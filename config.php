@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+// --------- CSP nonce ---------
+$csp_nonce = bin2hex(random_bytes(16));
+
 // --------- Security headers ---------
 $isHttps = !empty($_SERVER['HTTPS']) || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
 header('X-Content-Type-Options: nosniff');
@@ -9,6 +12,7 @@ header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()');
 header('Cross-Origin-Opener-Policy: same-origin');
 if ($isHttps) header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+// CSP: use nonce for inline scripts where possible; unsafe-inline kept for Tailwind CDN & Vue compat
 header("Content-Security-Policy: default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; img-src 'self' data: blob: https://api.qrserver.com https://cdn.plyr.io https://cdn.jsdelivr.net; media-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://app.sandbox.midtrans.com https://app.midtrans.com; frame-src 'self' https://app.sandbox.midtrans.com https://app.midtrans.com; connect-src 'self'");
 
 // --------- Session (hardened) ---------
@@ -31,6 +35,17 @@ if (!empty($_SESSION['_ua_bind']) && !hash_equals($_SESSION['_ua_bind'], $_ua_no
     session_destroy(); http_response_code(440); exit('Sesi kedaluwarsa, silakan masuk ulang.');
 }
 $_SESSION['_ua_bind'] = $_ua_now;
+
+// --------- Session idle timeout (admin: 30 min) ---------
+$_SESSION['_last_activity'] = time();
+if (!empty($_SESSION['admin_id'])) {
+    $idle_limit = 30 * 60; // 30 minutes
+    if (isset($_SESSION['_idle_ts']) && (time() - (int)$_SESSION['_idle_ts']) > $idle_limit) {
+        $_SESSION = []; session_destroy();
+        if (php_sapi_name() !== 'cli') { header('Location: ?page=login&timeout=1'); exit; }
+    }
+    $_SESSION['_idle_ts'] = time();
+}
 
 // --------- DB ---------
 $db = new mysqli(getenv('DB_HOST') ?: '127.0.0.1',
@@ -182,4 +197,38 @@ function midtrans_snap_url(string $mode): string {
     return $mode === 'production'
         ? 'https://app.midtrans.com/snap/snap.js'
         : 'https://app.sandbox.midtrans.com/snap/snap.js';
+}
+
+// --------- Simple file-based rate limiter ---------
+function rate_limit(string $key, int $max = 30, int $window = 60): bool {
+    $dir = CACHE_DIR . '/ratelimit';
+    @is_dir($dir) or @mkdir($dir, 0750, true);
+    $file = $dir . '/' . preg_replace('/[^a-z0-9_-]/', '', $key) . '.json';
+    $now = time();
+    $data = ['hits' => [], 'blocked_until' => 0];
+    if (is_file($file)) {
+        $raw = @file_get_contents($file);
+        if ($raw) $data = json_decode($raw, true) ?: $data;
+    }
+    // Purge old hits outside window
+    $data['hits'] = array_values(array_filter($data['hits'], fn($t) => $t > $now - $window));
+    if (count($data['hits']) >= $max) {
+        file_put_contents($file, json_encode($data), LOCK_EX);
+        return false; // rate limited
+    }
+    $data['hits'][] = $now;
+    file_put_contents($file, json_encode($data), LOCK_EX);
+    return true; // allowed
+}
+
+// --------- Nonce helper for inline scripts ---------
+function csp_nonce(): string {
+    global $csp_nonce;
+    return $csp_nonce ?? '';
+}
+
+// --------- Timeout message for idle session ---------
+if (isset($_GET['timeout']) && $_GET['timeout'] === '1') {
+    http_response_code(440);
+    // Will be handled by login page
 }
