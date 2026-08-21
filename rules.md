@@ -367,142 +367,6 @@ Structure responses to users clearly:
 
 ---
 
-## 🔀 Git Protocol
-
-> Git operations require caution. AI agents MUST follow this protocol.
-> **User preference:** AI agent handles ALL Git operations automatically.
-
-### Git Rules
-
-| Operation | Permission Required? | Notes |
-|-----------|---------------------|-------|
-| `git status` | ❌ No | Always safe to run |
-| `git diff` | ❌ No | Always safe to run |
-| `git log` | ❌ No | Always safe to run |
-| `git add` | ✅ **Automatic** | AI stages only relevant files |
-| `git commit` | ✅ **Automatic** | AI commits after successful work |
-| `git push` | ✅ **Automatic** | AI pushes after commit |
-| `git pull` | ✅ **Automatic** | AI pulls before starting work |
-| `git checkout -b` | ✅ **Automatic** | AI creates feature branches |
-| `git merge` | ✅ **Automatic** | AI merges feature branches to master |
-| `git revert` | 🔒 **NEVER without user permission** | Reverting affects production |
-| `git reset` | 🔒 **NEVER without user permission** | Destructive — can lose work |
-| `git rebase` | 🔒 **NEVER without user permission** | Rewrites history |
-
-### Branch Naming Convention
-
-| Branch Type | Prefix | Example |
-|-------------|--------|--------|
-| Bug fix | `fix/` | `fix/upload-retry-bug` |
-| New feature | `feat/` | `feat/new-admin-tab` |
-| Hotfix | `hotfix/` | `hotfix/security-patch` |
-| Documentation | `docs/` | `docs/update-readme` |
-| Refactor | `refactor/` | `refactor/simplify-upload` |
-
-### Commit Message Format (Bahasa Indonesia)
-
-```
-<type>(<scope>): <deskripsi>
-
-<opsi body>
-```
-
-**Types:**
-- `feat` — Fitur baru
-- `fix` — Perbaikan bug
-- `refactor` — Perbaikan kode tanpa mengubah perilaku
-- `docs` — Hanya dokumentasi
-- `style` — Perubahan CSS/UI
-- `chore` — Tugas pemeliharaan
-- `test` — Penambahan/pengubahan test
-
-**Contoh:**
-```
-feat(upload): tambah fitur resume upload setelah page reload
-fix(media): perbaiki poster tidak muncul di watch page
-refactor(token): sederhanakan logika verifikasi token
-docs(changelog): tambah entri untuk fitur baru
-chore(git): konfigurasi git dan tambahkan rules.md
-```
-
-### Workflow: Automatic Git
-
-AI agent WILL automatically:
-
-**1. Before starting work:**
-```bash
-git pull origin master  # Ambil perubahan terbaru
-```
-
-**2. After completing work:**
-```bash
-git add <modified-files>  # Hanya file yang relevan
-git commit -m "<type>(<scope>): <deskripsi>"
-git push origin <branch>  # Push ke remote
-```
-
-**3. For feature branches:**
-```bash
-git checkout -b <type>/<nama-fitur>  # Buat branch baru
-# ... kerja ...
-git push -u origin <branch>  # Push branch baru
-```
-
-**4. After feature branch is complete:**
-```bash
-git checkout master
-git merge <branch>
-git push origin master
-git branch -d <branch>  # Hapus branch lokal
-git push origin --delete <branch>  # Hapus branch remote
-```
-
-### What to Stage
-
-- ✅ Only files you modified for this task
-- ✅ Related documentation (changelog.md, audit.md, README.md)
-- ✅ rules.md if Git rules changed
-- ❌ Unrelated files — even if they have changes
-- ❌ Backup files (`.bak`, `.bak-*`)
-- ❌ `node_modules/` or `storage/` directories
-- ❌ Media files (`media/`)
-- ❌ Archive files (`*.zip`)
-
-### Remote Operations
-
-| Operation | Command | When |
-|-----------|---------|------|
-| Push master | `git push origin master` | After commit to master |
-| Push feature | `git push -u origin <branch>` | After commit to feature branch |
-| Pull latest | `git pull origin master` | Before starting work |
-| Fetch all | `git fetch --all` | Check for remote changes |
-| Clone repo | `git clone git@github.com:frnshaxor/Xboxchillz.git` | First time setup |
-
-### Conflict Resolution
-
-If merge conflict occurs:
-
-1. **Don't panic** — explain to user what happened
-2. **Show the conflict** — display the conflicting files
-3. **Suggest resolution** — which version to keep
-4. **Ask user** — confirm before resolving
-5. **Test after** — verify the fix works
-
-### Current Git Configuration
-
-| Setting | Value |
-|---------|-------|
-| `user.name` | `Xboxchillz` |
-| `user.email` | `alvin.krisdianto69@gmail.com` |
-| SSH Key | `~/.ssh/id_ed25519` (ed25519) |
-| Remote | `git@github.com:frnshaxor/Xboxchillz.git` (SSH) |
-| Default branch | `master` |
-| Branch strategy | Feature branches (`fix/`, `feat/`, `hotfix/`, `docs/`, `refactor/`) |
-| Commit format | Bahasa Indonesia (`feat(tambah): deskripsi`) |
-| Push behavior | Automatic (AI handles all Git operations) |
-
----
-
 ## 🗄️ Database Change Protocol
 
 > Database changes require extra caution. AI agents MUST follow this protocol.
@@ -698,6 +562,194 @@ $conn->execute('INSERT INTO t(a,b,c) VALUES(?,?,?)', [$a, $b, $c], 'ss');
 
 ---
 
+## 🤖 AI Agent Workflow — VPS Server & Repository
+
+> AI agents work directly on this VPS server and manage the repository automatically.
+> Follow this workflow for ALL tasks. **No manual intervention required** — AI handles everything.
+
+### End-to-End Workflow
+
+| Step | Action | Description | When |
+|------|--------|-------------|------|
+| 1 | **Receive Request** | AI receives task from user | Always |
+| 2 | **Read rules.md** | Understand the protocol and guidelines | Always |
+| 3 | **Read Context** | Read relevant source files, README.md, audit.md, changelog.md | Always |
+| 4 | **Identify Workflow** | Determine: fix bug / add feature / refactor / delete feature | Always |
+| 5 | **Identify Severity** | Classify P1–P4 based on impact | Always |
+| 6 | **Pull Latest** | `git pull origin master` — get latest code | When needed |
+| 7 | **Create Branch** | `git checkout -b <type>/<name>` — create feature branch | For feature work |
+| 8 | **Implement** | Make code changes following existing patterns | Always |
+| 9 | **Verify** | Run `php -l`, `npm run lint`, test the changes | Always |
+| 10 | **Document** | Update changelog.md, audit.md (if new findings) | Always |
+| 11 | **Commit** | `git add` + `git commit` with Bahasa Indonesia message | Always |
+| 12 | **Push** | `git push` to remote | Always |
+| 13 | **Merge to Master** | `git checkout master` + `git merge <branch>` | After feature complete |
+| 14 | **Push Master** | `git push origin master` | After merge |
+| 15 | **Cleanup Branch** | Delete feature branch (local + remote) | After merge |
+| 16 | **Report** | Report completion to user with summary | Always |
+
+### Workflow Diagram
+
+```
+User Request
+    │
+    ▼
+┌─────────────────┐
+│  Read rules.md  │
+│  Read context   │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Identify task  │
+│  (fix/feat/etc) │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Pull latest    │
+│  (if needed)    │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Create branch  │
+│  (feat/*)       │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Implement      │
+│  Verify         │
+│  Document       │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Commit + Push  │
+│  (branch)       │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Merge to master│
+│  Push master    │
+│  Cleanup branch │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Report to user │
+└─────────────────┘
+```
+
+### Repository Management
+
+**AI agent manages the repository FULLY AUTOMATICALLY.** No user confirmation needed for routine operations.
+
+| Operation | Permission | Notes |
+|-----------|-----------|-------|
+| `git add` | ✅ **Auto** | AI stages only relevant files |
+| `git commit` | ✅ **Auto** | AI commits after successful work |
+| `git push` | ✅ **Auto** | AI pushes after commit |
+| `git checkout -b` | ✅ **Auto** | AI creates feature branches |
+| `git merge` | ✅ **Auto** | AI merges feature branches to master |
+| `git branch -d` | ✅ **Auto** | AI deletes merged branches |
+| `git pull` | ✅ **Auto** | AI pulls when needed |
+| `git revert` | 🔒 **User permission** | Reverting affects production |
+| `git reset` | 🔒 **User permission** | Destructive — can lose work |
+| `git rebase` | 🔒 **User permission** | Rewrites history |
+
+### Branch Lifecycle
+
+```
+master ──────────────────────────────────────────────●───●───●
+              \                                    /
+               ●───●───●───●───● (feat/branch) ──●
+              |   |   |   |   |                  |
+             add commit push merge             delete
+```
+
+1. **Create:** `git checkout -b feat/nama-fitur` from master
+2. **Work:** Edit files, verify, document
+3. **Commit:** `git commit -m "feat(nama): deskripsi"`
+4. **Push:** `git push -u origin feat/nama-fitur`
+5. **Merge:** `git checkout master` → `git merge feat/nama-fitur`
+6. **Push master:** `git push origin master`
+7. **Cleanup:** `git branch -d feat/nama-fitur` → `git push origin --delete feat/nama-fitur`
+
+### Edge Cases
+
+| Scenario | AI Action |
+|----------|-----------|
+| **Push fails** (remote changed) | Pull, resolve conflict, push again |
+| **Merge conflict** | Resolve conflict, test, commit, push |
+| **User requests rollback** | Ask for confirmation, then `git revert` |
+| **PHP syntax error** after commit | Fix error, amend commit, push |
+| **ESLint errors** | Fix errors before commit |
+| **Broken feature branch** | Delete branch, start fresh from master |
+| **Multiple features** | Use separate feature branches for each |
+| **Production incident** | Create `hotfix/*` branch, fix, merge to master, push |
+| **DB schema change** | Create migration, test, commit with schema changes |
+| **CSS changes** | Edit public CSS, sync to root, commit both files |
+
+### Commit Decision Logic
+
+AI decides when to commit based on:
+
+| Condition | Action |
+|-----------|--------|
+| Task completed successfully | Commit immediately |
+| Multiple related changes | Commit together as one logical unit |
+| Unrelated changes | Separate commits for each logical change |
+| Work in progress (not ready) | Do NOT commit — continue working |
+| Verification failed | Fix first, then commit |
+| Edge of work session | Commit to preserve progress |
+
+### Current VPS Configuration
+
+| Setting | Value |
+|---------|-------|
+| **Server** | Linux VPS |
+| **App Root** | `/var/www/arsip-layar` |
+| **Document Root** | `/var/www/arsip-layar/public` |
+| **Git User** | `Xboxchillz` |
+| **Git Email** | `alvin.krisdianto69@gmail.com` |
+| **SSH Key** | `~/.ssh/id_ed25519` (ed25519) |
+| **Remote** | `git@github.com:frnshaxor/Xboxchillz.git` |
+| **Default Branch** | `master` |
+| **Web Server** | Nginx (port 80) |
+| **PHP** | 8.5.4 (FPM, unix socket) |
+| **Database** | MySQL/MariaDB |
+| **DB Name** | `arsip_layar` |
+| **DB User** | `arsip` |
+| **DB Host** | `127.0.0.1` |
+
+### Example Flow
+
+**User request:** "Fix poster tidak muncul di watch page"
+
+| Step | Action | Result |
+|------|--------|--------|
+| 1 | Receive request | "Fix poster tidak muncul" |
+| 2 | Read rules.md | Protocol understood |
+| 3 | Read context | `watch.php`, `MediaController.php`, `MediaService.php` |
+| 4 | Identify workflow | Fix Bug |
+| 5 | Identify severity | P2 (High) — feature broken |
+| 6 | Pull latest | `git pull origin master` — already up to date |
+| 7 | Create branch | `git checkout -b fix/poster-not-loading` |
+| 8 | Implement | Found and fixed the bug |
+| 9 | Verify | `php -l` — no errors, poster loads |
+| 10 | Document | Updated changelog.md |
+| 11 | Commit | `git commit -m "fix(media): perbaiki poster tidak muncul di watch page"` |
+| 12 | Push | `git push -u origin fix/poster-not-loading` |
+| 13 | Merge | `git checkout master` + `git merge fix/poster-not-loading` |
+| 14 | Push master | `git push origin master` |
+| 15 | Cleanup | `git branch -d fix/poster-not-loading` + delete remote |
+| 16 | Report | "Poster bug fixed. Commit: abc1234" |
+
+---
+
 ## 🧠 Known Gotchas & Lessons Learned
 
 > Extracted from `audit.md` and `README.md`. AI agents MUST be aware of these before making changes.
@@ -869,6 +921,9 @@ arsip-layar/
 | Health checks | — | Section 10.4 | Section 16 | 2026-08-21 (Slug Fix + Health Check) |
 | Telegram notifications | Gotcha 9 | Section 10.9 | — | — |
 | Rate limiting | Gotcha 8 | Section 10.10 | Section 3 (Fix #3) | 2026-08-20 (Security) |
+| AI Agent Workflow | 🤖 Section above | — | — | 2026-08-21 (Git Config + Workflow) |
+| Git management | 🤖 Section above | — | — | 2026-08-21 (Git Config) |
+| Repository rules | 🤖 Section above | — | — | 2026-08-21 (Git Config) |
 
 ---
 

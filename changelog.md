@@ -6,6 +6,64 @@
 
 ---
 
+## 2026-08-21 (AI Agent Workflow)
+
+### 🟢 Feature: AI Agent Workflow — VPS Server & Repository Management
+
+**Problem:** AI agents working in this codebase needed a clear, end-to-end workflow document that describes how to work on the VPS server and manage the Git repository automatically.
+
+**Solution:** Added comprehensive "AI Agent Workflow" section to `rules.md` with end-to-end flow, repository management rules, edge cases, and VPS configuration.
+
+#### New Section Added to rules.md
+
+| Content | Description |
+|---------|-------------|
+| **End-to-End Workflow** | 16-step table from receiving request to reporting completion |
+| **Workflow Diagram** | ASCII art flowchart of the complete process |
+| **Repository Management** | Auto vs permission-required operations table |
+| **Branch Lifecycle** | Visual diagram of branch creation → work → merge → cleanup |
+| **Edge Cases** | 10 scenarios with AI actions (push fails, merge conflict, rollback, etc.) |
+| **Commit Decision Logic** | When AI commits vs when it doesn't |
+| **Current VPS Configuration** | Server details, Git config, database info |
+| **Example Flow** | Complete example: "Fix poster tidak muncul" with all 16 steps |
+
+#### Key Features
+
+**Fully Automatic Repository Management:**
+- AI handles: `git add`, `commit`, `push`, `checkout -b`, `merge`, `branch -d`
+- User permission required: `revert`, `reset`, `rebase`
+- AI decides when to: pull, create branch, commit, push
+
+**End-to-End 16-Step Workflow:**
+1. Receive Request → 2. Read rules.md → 3. Read Context → 4. Identify Workflow
+5. Identify Severity → 6. Pull Latest → 7. Create Branch → 8. Implement
+9. Verify → 10. Document → 11. Commit → 12. Push
+13. Merge to Master → 14. Push Master → 15. Cleanup Branch → 16. Report
+
+**Edge Case Handling:**
+- Push fails → pull, resolve, push again
+- Merge conflict → resolve, test, commit, push
+- Rollback request → ask confirmation, then revert
+- Production incident → hotfix branch workflow
+
+#### Files Modified
+
+| File | Changes |
+|------|--------|
+| `rules.md` | Added 🤖 AI Agent Workflow section (~120 lines) |
+| `changelog.md` | Added this entry |
+
+#### Verification
+- ✅ New section added after "Detailed Protocols"
+- ✅ End-to-end workflow table has 16 steps
+- ✅ Repository management rules clearly defined
+- ✅ Edge cases table covers 10 scenarios
+- ✅ VPS configuration table has correct values
+- ✅ Cross-reference index updated
+- ✅ changelog.md updated
+
+---
+
 ## 2026-08-21 (Git Configuration)
 
 ### 🟢 Feature: Git Account Configuration & Rules
