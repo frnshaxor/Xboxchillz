@@ -586,6 +586,7 @@
     const hlsSrc = wrap.dataset.hls;
     const qualityButtons = $$('[data-quality]', wrap.parentElement);
     const QUALITY_STORAGE_KEY = 'arsip-quality';
+    let _syncing = false; // re-entrant guard for applyQuality ↔ qualitychange
 
     const markQuality = (quality) => qualityButtons.forEach((button) => button.classList.toggle('active', Number(button.dataset.quality) === quality));
 
@@ -611,44 +612,87 @@
       i18n: { play: 'Putar', pause: 'Jeda', mute: 'Bisukan', unmute: 'Suarakan', enableCaptions: 'Aktifkan takarir', disableCaptions: 'Matikan takarir', enterFullscreen: 'Layar penuh', exitFullscreen: 'Keluar layar penuh', settings: 'Pengaturan', normal: 'Normal', quality: 'Kualitas', pip: 'Picture in Picture', qualityBadge: 'Resolusi', loop: 'Ulangi' }
     });
 
-    function applyQuality(quality, hls, player) {
-      const levelIdx = quality === 0 ? -1 : hls.levels.findIndex(level => Number(level.height) === quality);
-      hls.currentLevel = levelIdx;
-      markQuality(quality);
-      try { localStorage.setItem(QUALITY_STORAGE_KEY, String(quality)); } catch (e) { void e; /* quota */ }
-      // Sync Plyr quality setting if player exists
-      if (player && player.quality !== undefined) {
-        try { player.quality = quality; } catch (e) { void e; /* Plyr internal */ }
-      }
-    }
-
     if (hlsSrc && !video.canPlayType('application/vnd.apple.mpegurl') && window.Hls && window.Hls.isSupported()) {
+      // Remove <source> elements with HLS type — they conflict with HLS.js
+      $$('source[type*="mpegURL"], source[type*="mpegurl"]', video).forEach(function (s) { s.remove(); });
+
       const hls = new Hls({ enableWorker: true, lowLatencyMode: false, capLevelToPlayerSize: false, backBufferLength: 90 });
       hls.loadSource(hlsSrc);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        const heights = [...new Set(hls.levels.map(level => Number(level.height)).filter(Boolean))].sort((a, b) => b - a);
-        // Ensure at least default options so Plyr shows quality in gear icon
-        const opts = heights.length > 0 ? [0, ...heights] : [0, 720, 360];
+        // Build sorted level map: height → hls level index
+        const sortedLevels = hls.levels
+          .map(function (level, idx) { return { height: Number(level.height) || 0, idx: idx }; })
+          .filter(function (l) { return l.height > 0; })
+          .sort(function (a, b) { return b.height - a.height; });
+        const heightToIdx = {};
+        sortedLevels.forEach(function (l) { heightToIdx[l.height] = l.idx; });
+
+        // Plyr quality options: [0=Auto, ...sorted heights]
+        const heights = sortedLevels.map(function (l) { return l.height; });
+        const opts = heights.length > 0 ? [0].concat(heights) : [0, 720, 360];
         const player = createPlayer(opts);
+
+        // Core: set HLS level from button quality value
+        function setHlsLevel(quality) {
+          if (quality === 0) {
+            hls.currentLevel = -1; // Auto
+          } else if (heightToIdx[quality] !== undefined) {
+            hls.currentLevel = heightToIdx[quality];
+          } else {
+            // Fallback: find closest height
+            let best = sortedLevels[0];
+            let diff = Math.abs(best.height - quality);
+            sortedLevels.forEach(function (l) {
+              const d = Math.abs(l.height - quality);
+              if (d < diff) { diff = d; best = l; }
+            });
+            hls.currentLevel = best.idx;
+          }
+        }
+
+        // Apply quality from any source (button click or Plyr gear) with re-entrant guard
+        function applyQuality(quality, fromPlyr) {
+          if (_syncing) return;
+          _syncing = true;
+          try {
+            setHlsLevel(quality);
+            markQuality(quality);
+            try { localStorage.setItem(QUALITY_STORAGE_KEY, String(quality)); } catch (e) { void e; /* quota */ }
+            // Sync Plyr gear icon if change came from custom button
+            if (!fromPlyr && player) {
+              try { player.quality = quality; } catch (e) { void e; /* Plyr internal */ }
+            }
+          } finally {
+            _syncing = false;
+          }
+        }
+
         // Apply saved quality on load
         if (savedQuality !== 0) {
-          applyQuality(savedQuality, hls, player);
+          setHlsLevel(savedQuality);
+          markQuality(savedQuality);
         }
-        player.on('qualitychange', (event) => {
+
+        // Plyr gear icon → HLS
+        player.on('qualitychange', function (event) {
           const quality = Number(event.detail && event.detail.quality);
           if (Number.isNaN(quality)) return;
-          applyQuality(quality, hls, player);
+          applyQuality(quality, true);
         });
-        qualityButtons.forEach((button) => button.addEventListener('click', () => {
-          const quality = Number(button.dataset.quality);
-          applyQuality(quality, hls, player);
-        }));
+
+        // Custom buttons → HLS + Plyr
+        qualityButtons.forEach(function (button) {
+          button.addEventListener('click', function () {
+            const quality = Number(button.dataset.quality);
+            applyQuality(quality, false);
+          });
+        });
+
         window.__player = player;
       });
-      hls.on(Hls.Events.ERROR, (_event, data) => {
+      hls.on(Hls.Events.ERROR, function (_event, data) {
         if (data && data.fatal) {
-          // Show error fallback UI
           showVideoError(wrap, 'Gagal memuat video. Pastikan koneksi internet stabil dan coba muat ulang.');
         }
       });
@@ -660,23 +704,25 @@
       // Apply saved quality on load
       if (savedQuality !== 0 && hlsSrc) {
         const src = savedQuality === 720 ? wrap.dataset.hls720 : savedQuality === 360 ? wrap.dataset.hls360 : hlsSrc;
-        if (src) { video.src = src; video.load(); video.play().catch(() => {}); markQuality(savedQuality); }
+        if (src) { video.src = src; video.load(); video.play().catch(function () {}); markQuality(savedQuality); }
       }
-      qualityButtons.forEach((button) => button.addEventListener('click', () => {
-        const quality = Number(button.dataset.quality);
-        const src = quality === 720 ? wrap.dataset.hls720 : quality === 360 ? wrap.dataset.hls360 : hlsSrc;
-        if (src) {
-          video.src = src;
-          video.load();
-          video.play().catch(() => {});
-        }
-        markQuality(quality);
-        try { localStorage.setItem(QUALITY_STORAGE_KEY, String(quality)); } catch (e) { void e; /* quota */ }
-      }));
+      qualityButtons.forEach(function (button) {
+        button.addEventListener('click', function () {
+          const quality = Number(button.dataset.quality);
+          const src = quality === 720 ? wrap.dataset.hls720 : quality === 360 ? wrap.dataset.hls360 : hlsSrc;
+          if (src) {
+            video.src = src;
+            video.load();
+            video.play().catch(function () {});
+          }
+          markQuality(quality);
+          try { localStorage.setItem(QUALITY_STORAGE_KEY, String(quality)); } catch (e) { void e; /* quota */ }
+        });
+      });
     }
 
     // Video error fallback
-    video.addEventListener('error', () => {
+    video.addEventListener('error', function () {
       showVideoError(wrap, 'Terjadi kesalahan saat memutar video. Silakan muat ulang halaman.');
     });
   }
