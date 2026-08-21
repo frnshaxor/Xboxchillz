@@ -978,6 +978,7 @@ npm run lint:report   # Generate JSON report to storage/
 | Modify theme colors | `public/assets/css/style.css` (Shadcn CSS custom properties in `:root`) |
 | Add Shadcn component | Create HTML using CSS vars (`--surface`, `--accent`, etc.) in relevant view |
 | Add database column | `schema.sql` + `ALTER TABLE` in migration |
+| Add new unit test | `tests/Unit/NewTest.php` (extends PHPUnit TestCase) |
 
 ### Important Patterns
 
@@ -996,6 +997,10 @@ npm run lint:report   # Generate JSON report to storage/
 7. **API responses always use `Response::json()`** — never `echo json_encode()` directly.
 
 8. **Settings are cached in-memory** via the global `$_settings_cache` — calling `set_setting()` updates the cache immediately, so subsequent `setting()` calls within the same request return the fresh value.
+
+9. **Unit tests use PHPUnit** and are located in `tests/Unit/`. Run with `vendor/bin/phpunit`. Tests do NOT access production database — they use mock data and static assertions.
+
+10. **Adding new tests:** Create `tests/Unit/NewTest.php` with class extending `PHPUnit\Framework\TestCase`. Follow existing patterns in `tests/Unit/AuthTest.php` for reference.
 
 ---
 

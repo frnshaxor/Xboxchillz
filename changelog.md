@@ -6,6 +6,61 @@
 
 ---
 
+## 2026-08-21 (Unit Tests)
+
+### 🟢 Feature: Unit Tests with PHPUnit (10 Files, 50 Tests)
+
+**Problem:** Codebase memiliki 0 test coverage (31/100) — tidak bisa membuktikan code berfungsi. Deep audit menunjukkan testing adalah gap terbesar.
+
+**Solution:** Menambahkan 10 unit tests menggunakan PHPUnit (11.5.56) untuk mengcover area kritis berdasarkan deep audit findings.
+
+#### Tests Added
+
+| # | Test File | Tests | Assertions | Coverage Area |
+|---|-----------|-------|------------|---------------|
+| 1 | AuthTest.php | 5 | 15 | Login, rate limiting, 2FA, password hashing |
+| 2 | MediaTest.php | 4 | 18 | Access control, path traversal, slug format |
+| 3 | VideoUploadTest.php | 5 | 22 | File validation, slug generation, shell safety |
+| 4 | TokenManagerTest.php | 5 | 20 | Token format, expiry, status, hashing |
+| 5 | CsrfTest.php | 5 | 12 | Double-submit validation, timing-safe comparison |
+| 6 | SessionTest.php | 4 | 14 | UA binding, idle timeout, SameSite cookies |
+| 7 | RateLimitTest.php | 5 | 12 | Rate limiting, window calculation, file storage |
+| 8 | SettingsTest.php | 5 | 15 | In-memory cache, fallback, key format |
+| 9 | SlugTest.php | 6 | 18 | Edge cases, special characters, hex suffix |
+| 10 | HealthCheckTest.php | 6 | 8 | Stuck processing, invalid slugs, disk space |
+
+**Total: 50 tests, 154 assertions across 10 files**
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `composer.json` | PHPUnit dependencies + autoload config |
+| `phpunit.xml` | PHPUnit configuration |
+| `tests/Unit/AuthTest.php` | Auth security tests (5 tests) |
+| `tests/Unit/MediaTest.php` | Media access control tests (4 tests) |
+| `tests/Unit/VideoUploadTest.php` | Upload validation tests (5 tests) |
+| `tests/Unit/TokenManagerTest.php` | Token verification tests (5 tests) |
+| `tests/Unit/CsrfTest.php` | CSRF double-submit tests (5 tests) |
+| `tests/Unit/SessionTest.php` | Session security tests (4 tests) |
+| `tests/Unit/RateLimitTest.php` | Rate limiting tests (5 tests) |
+| `tests/Unit/SettingsTest.php` | Settings cache tests (5 tests) |
+| `tests/Unit/SlugTest.php` | Slug generation tests (6 tests) |
+| `tests/Unit/HealthCheckTest.php` | Health check tests (6 tests) |
+
+#### Verification
+
+- ✅ All 12 new files pass `php -l`
+- ✅ `vendor/bin/phpunit` — all 50 tests pass (154 assertions)
+- ✅ No debug code in test files
+- ✅ No production DB access in tests
+- ✅ Autoload: PHPUnit uses Composer, production uses glob() — no conflict
+- ✅ Testing score improved from 31/100 → 65/100 (+34 points)
+
+**Audit:** Section 17 (Testing Audit) in audit.md
+
+---
+
 ## 2026-08-21 (Cross-Reference Audit)
 
 ### 🟢 Enhancement: 5-File Cross-Reference Audit & Fixes
