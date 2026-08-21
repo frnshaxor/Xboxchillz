@@ -1,0 +1,43 @@
+server {
+  listen 80 default_server;
+  listen [::]:80 default_server;
+  server_name _;
+  root /var/www/arsip-layar/public;
+  index index.php;
+  client_max_body_size 2G;
+
+  # Security headers (defence in depth; app also emits them)
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header X-Frame-Options "DENY" always;
+  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+  add_header Permissions-Policy "geolocation=(), microphone=(), camera=()" always;
+
+  # Never expose original media paths. Protected media is checked by PHP session/token.
+  location ^~ /media/ { deny all; }
+  location ^~ /protected-media/ { set $protected_media_path $uri; rewrite ^ /index.php?page=media&path=$protected_media_path last; }
+  # HLS mime types are served by the protected PHP endpoint above.
+  location ~* \.(jpg|jpeg|png|webp|css|js)$ { add_header Cache-Control "public,max-age=86400"; try_files $uri =404; }
+
+  # Deny hidden/dot files
+  location ~ /\. { deny all; }
+  # Deny direct PHP inside media
+  location ~ ^/media/.*\.(php|phtml|phar)$ { deny all; }
+  # Deny sensitive directories
+  location ~ ^/(storage|\.git|\.env|app|routes|controllers|views) { deny all; }
+
+  location / { try_files $uri $uri/ /index.php?$query_string; }
+
+  location ~ \.php$ {
+    include snippets/fastcgi-php.conf;
+    fastcgi_pass unix:/run/php/php8.5-fpm.sock;
+    fastcgi_read_timeout 300;
+    fastcgi_buffers 16 16k;
+    fastcgi_buffer_size 32k;
+    # Throttle brute-force logins (only when ?page=login)
+    limit_req zone=login burst=10 nodelay;
+    limit_req_status 429;
+  }
+
+  # Block common exploit paths (also matched by fail2ban)
+  location ~* (wp-login|xmlrpc\.php|/\.env|/phpmyadmin) { return 444; }
+}

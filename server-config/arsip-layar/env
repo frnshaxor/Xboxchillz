@@ -1,0 +1,4 @@
+DB_HOST=127.0.0.1
+DB_USER=arsip
+DB_PASS=ArsipDb_2026_xK7
+DB_NAME=arsip_layar

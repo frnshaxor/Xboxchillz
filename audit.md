@@ -9,6 +9,8 @@
 
 ## 1. EXECUTIVE SUMMARY
 
+> **Server documentation:** See `AUTODEPLOY.md` for complete VPS server configuration, deployment instructions, and disaster recovery guide.
+
 **Overall Status: 🟢 PASS with minor findings**
 
 The codebase is **well-architected** with solid security fundamentals. The MVC separation is clean, all critical security measures (CSRF, XSS, SQL injection, auth bypass, path traversal) are properly implemented. The main concerns are minor code quality issues and one documentation inaccuracy.

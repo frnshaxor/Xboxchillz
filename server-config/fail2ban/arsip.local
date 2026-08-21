@@ -1,0 +1,24 @@
+[DEFAULT]
+bantime  = 1h
+findtime = 15m
+maxretry = 5
+backend  = systemd
+
+[sshd]
+enabled = true
+port    = ssh
+maxretry = 4
+
+[nginx-limit-req]
+enabled  = true
+filter   = nginx-limit-req
+port     = http,https
+logpath  = /var/log/nginx/error.log
+maxretry = 10
+
+[nginx-badbots]
+enabled  = true
+filter   = nginx-badbots
+port     = http,https
+logpath  = /var/log/nginx/access.log
+maxretry = 2

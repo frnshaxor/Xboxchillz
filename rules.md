@@ -708,6 +708,8 @@ AI decides when to commit based on:
 
 ### Current VPS Configuration
 
+> **Full server documentation:** See `AUTODEPLOY.md` for complete setup instructions, disaster recovery guide, and server configuration details.
+
 | Setting | Value |
 |---------|-------|
 | **Server** | Linux VPS |

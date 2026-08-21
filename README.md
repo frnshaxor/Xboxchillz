@@ -133,6 +133,8 @@ php -l <modified_file.php>   # Repeat for EVERY modified PHP file
 
 ## 2. Server Environment
 
+> **Full server documentation:** See `AUTODEPLOY.md` for complete setup instructions, disaster recovery guide, and server configuration details.
+
 | Component | Detail |
 |-----------|--------|
 | OS | Linux VPS |

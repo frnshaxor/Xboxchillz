@@ -6,6 +6,63 @@
 
 ---
 
+## 2026-08-21 (AUTODEPLOY.md)
+
+### 🟢 Feature: AUTODEPLOY.md — VPS Server Disaster Recovery Guide
+
+**Problem:** No comprehensive documentation existed for the VPS server environment. If the server died, there was no way to rebuild it from scratch.
+
+**Solution:** Created `AUTODEPLOY.md` with complete server documentation, disaster recovery instructions, and deployment guide for AI agents.
+
+#### New File Created
+
+| File | Content |
+|------|--------|
+| `AUTODEPLOY.md` | Complete VPS server documentation (~400 lines) |
+
+#### Config Files Added to Repo
+
+| File | Destination |
+|------|-------------|
+| `server-config/nginx/arsip-layar` | `/etc/nginx/sites-enabled/arsip-layar` |
+| `server-config/php-fpm/www.conf` | `/etc/php/8.5/fpm/pool.d/www.conf` |
+| `server-config/arsip-layar/env` | `/etc/arsip-layar/env` |
+| `server-config/fail2ban/arsip.local` | `/etc/fail2ban/jail.d/arsip.local` |
+
+#### AUTODEPLOY.md Sections
+
+| Section | Content |
+|---------|--------|
+| Quick Start | One-shot setup script for experienced AI agents |
+| Server Specifications | Current VPS config (Ubuntu 26.04, 8 CPU, 9.2GB RAM) |
+| Package Installation | 15 required packages with versions |
+| Service Configuration | Nginx, PHP-FPM, MySQL, Systemd configs |
+| Security Setup | UFW, fail2ban, SSH keys, file permissions |
+| Database Setup | Create DB/user, schema, data restore |
+| Application Setup | Clone repo, env config, dependencies |
+| Backup & Restore | Database, media, full server backup |
+| Health Check | Service verification, troubleshooting |
+
+#### Files Modified
+
+| File | Changes |
+|------|--------|
+| `AUTODEPLOY.md` | Created (~400 lines) |
+| `README.md` | Added reference to AUTODEPLOY.md |
+| `audit.md` | Added reference to AUTODEPLOY.md |
+| `changelog.md` | Added this entry |
+| `rules.md` | Added reference to AUTODEPLOY.md |
+
+#### Verification
+- ✅ AUTODEPLOY.md created with 9 sections
+- ✅ Quick Start script is copy-paste ready
+- ✅ All credentials documented (DB password, SSH key, GitHub)
+- ✅ All config files added to repo (nginx, PHP-FPM, fail2ban, env)
+- ✅ Cross-references added to README.md, audit.md, rules.md
+- ✅ Integration with 4 existing MD files verified
+
+---
+
 ## 2026-08-21 (AI Agent Workflow)
 
 ### 🟢 Feature: AI Agent Workflow — VPS Server & Repository Management
