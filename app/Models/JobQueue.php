@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -21,7 +22,7 @@ class JobQueue
         $nextRun = $delaySeconds > 0
             ? date('Y-m-d H:i:s', time() + $delaySeconds)
             : date('Y-m-d H:i:s');
-        
+
         return $this->conn->insert(
             'INSERT INTO job_queue(job_type, payload, status, next_run_at) VALUES(?,?,?,?)',
             [$jobType, $json, 'pending', $nextRun],
@@ -38,8 +39,10 @@ class JobQueue
         );
         if (!$row) {
             $this->conn->rollback();
+
             return null;
         }
+
         return $row;
     }
 
@@ -89,12 +92,13 @@ class JobQueue
     public function stats(): array
     {
         $rows = $this->conn->selectAll(
-            "SELECT status, COUNT(*) c FROM job_queue GROUP BY status"
+            'SELECT status, COUNT(*) c FROM job_queue GROUP BY status'
         );
         $stats = ['pending' => 0, 'running' => 0, 'done' => 0, 'failed' => 0];
         foreach ($rows as $r) {
-            $stats[$r['status']] = (int)$r['c'];
+            $stats[$r['status']] = (int) $r['c'];
         }
+
         return $stats;
     }
 

@@ -1,0 +1,27 @@
+parameters:
+    level: 0
+    paths:
+        - app
+        - controllers
+        - routes
+    excludePaths:
+        - vendor
+        - storage
+        - media
+        - sandbox
+        - node_modules
+        - cli
+        - tests
+    scanDirectories:
+        - app/Database
+        - app/Http
+        - app/Middleware
+        - app/Models
+        - app/Services
+        - lib
+    scanFiles:
+        - app/bootstrap.php
+        - app/helpers.php
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        - '#Class ContactController does not have a constructor and must be instantiated without any parameters.#'

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -16,7 +17,9 @@ class AuthController
     /** Show login page. */
     public function loginForm(): void
     {
-        if (admin()) go('?page=admin');
+        if (admin()) {
+            go('?page=admin');
+        }
         $error = $_SESSION['login_error'] ?? '';
         unset($_SESSION['login_error']);
         Response::view('auth/login', ['error' => $error]);
@@ -27,9 +30,9 @@ class AuthController
     {
         CsrfMiddleware::validate();
 
-        $email = trim((string)($_POST['email'] ?? ''));
-        $pass  = (string)($_POST['password'] ?? '');
-        $code  = preg_replace('/\D/', '', (string)($_POST['totp'] ?? ''));
+        $email = trim((string) ($_POST['email'] ?? ''));
+        $pass = (string) ($_POST['password'] ?? '');
+        $code = preg_replace('/\D/', '', (string) ($_POST['totp'] ?? ''));
 
         $result = $this->authService->login($email, $pass, $code);
 
@@ -92,9 +95,9 @@ class AuthController
         AuthMiddleware::requireAdmin();
         CsrfMiddleware::validate();
 
-        $name    = trim((string)($_POST['name'] ?? ''));
-        $email   = trim((string)($_POST['email'] ?? ''));
-        $current = (string)($_POST['current_password'] ?? '');
+        $name = trim((string) ($_POST['name'] ?? ''));
+        $email = trim((string) ($_POST['email'] ?? ''));
+        $current = (string) ($_POST['current_password'] ?? '');
 
         $result = $this->authService->updateProfile($name, $email, $current);
         if (isset($result['ok'])) {
@@ -115,9 +118,9 @@ class AuthController
         AuthMiddleware::requireAdmin();
         CsrfMiddleware::validate();
 
-        $current = (string)($_POST['current_password'] ?? '');
-        $new     = (string)($_POST['new_password'] ?? '');
-        $confirm = (string)($_POST['confirm_password'] ?? '');
+        $current = (string) ($_POST['current_password'] ?? '');
+        $new = (string) ($_POST['new_password'] ?? '');
+        $confirm = (string) ($_POST['confirm_password'] ?? '');
 
         $result = $this->authService->changePassword($current, $new, $confirm);
         if (isset($result['ok'])) {

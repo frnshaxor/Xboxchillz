@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -17,6 +18,7 @@ switch ($page) {
             exit('Payload tidak valid');
         }
         (new MidtransPayment($conn))->handleWebhook($payload);
+
         return;
 
     default:

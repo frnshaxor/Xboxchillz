@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class LoginAttempt
@@ -17,7 +18,8 @@ class LoginAttempt
         $s = $success ? 1 : 0;
         $this->conn->execute(
             'INSERT INTO login_attempts(ip,email,success,reason) VALUES(?,?,?,?)',
-            [$ip, $email, $s, $reason], 'ssis'
+            [$ip, $email, $s, $reason],
+            'ssis'
         );
     }
 
@@ -26,9 +28,11 @@ class LoginAttempt
     {
         $row = $this->conn->selectOne(
             'SELECT COUNT(*) c FROM login_attempts WHERE ip=? AND success=0 AND created_at > (NOW() - INTERVAL ? MINUTE)',
-            [$ip, $minutes], 'si'
+            [$ip, $minutes],
+            'si'
         );
-        return (int)($row['c'] ?? 0);
+
+        return (int) ($row['c'] ?? 0);
     }
 
     /** Get recent failed login attempts (admin view). */
@@ -36,7 +40,8 @@ class LoginAttempt
     {
         return $this->conn->selectAll(
             'SELECT ip,email,reason,created_at FROM login_attempts WHERE success=0 ORDER BY created_at DESC LIMIT ?',
-            [$limit], 'i'
+            [$limit],
+            'i'
         );
     }
 }

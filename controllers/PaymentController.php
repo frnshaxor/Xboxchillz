@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -22,27 +23,27 @@ class PaymentController
         $db = Connection::getInstance()->db();
         $isHttps = !empty($_SERVER['HTTPS']) || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
 
-        $mode    = ($_POST['mode'] ?? 'sandbox') === 'production' ? 'production' : 'sandbox';
+        $mode = ($_POST['mode'] ?? 'sandbox') === 'production' ? 'production' : 'sandbox';
         $enabled = ($_POST['enabled'] ?? '') === '1' ? '1' : '0';
         if ($enabled === '1' && $mode === 'production' && !$isHttps) {
             go('?page=admin&tab=payments&midtrans_err=https');
         }
 
-        $price = max(1000, min(100000000, (int)($_POST['price'] ?? 50000)));
+        $price = max(1000, min(100000000, (int) ($_POST['price'] ?? 50000)));
 
         $old = [
             'midtrans_mode' => setting($db, 'midtrans_mode', 'sandbox'),
             'midtrans_enabled' => setting($db, 'midtrans_enabled', '0'),
             'midtrans_token_price' => setting($db, 'midtrans_token_price', '50000'),
         ];
-        $new = ['midtrans_mode' => $mode, 'midtrans_enabled' => $enabled, 'midtrans_token_price' => (string)$price];
+        $new = ['midtrans_mode' => $mode, 'midtrans_enabled' => $enabled, 'midtrans_token_price' => (string) $price];
 
         set_setting($db, 'midtrans_mode', $mode);
         set_setting($db, 'midtrans_enabled', $enabled);
-        set_setting($db, 'midtrans_token_price', (string)$price);
+        set_setting($db, 'midtrans_token_price', (string) $price);
 
         foreach (['client_key' => 'midtrans_client_key', 'server_key' => 'midtrans_server_key'] as $field => $settingKey) {
-            $value = trim((string)($_POST[$field] ?? ''));
+            $value = trim((string) ($_POST[$field] ?? ''));
             if ($value !== '') {
                 $old[$settingKey] = '(hidden)';
                 $new[$settingKey] = '(updated)';
@@ -50,7 +51,7 @@ class PaymentController
             }
         }
 
-        log_activity_diff($db, (int)$_SESSION['admin_id'], 'midtrans_settings_save', "mode=$mode enabled=$enabled price=$price", $old, $new);
+        log_activity_diff($db, (int) $_SESSION['admin_id'], 'midtrans_settings_save', "mode=$mode enabled=$enabled price=$price", $old, $new);
         go('?page=admin&tab=payments&saved=1');
     }
 
@@ -76,7 +77,7 @@ class PaymentController
     /** Get payment status (API, for client-side polling). */
     public function getStatus(): void
     {
-        $orderId      = $_GET['order_id'] ?? '';
+        $orderId = $_GET['order_id'] ?? '';
         $accessSecret = $_GET['access_secret'] ?? '';
         Response::json($this->paymentService->getStatus($orderId, $accessSecret));
     }

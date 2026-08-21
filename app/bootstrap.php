@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -13,7 +14,7 @@ define('MEDIA_ROOT', APP_ROOT . '/media');
 define('BACKUP_DIR', APP_ROOT . '/storage/backups');
 define('CACHE_DIR', APP_ROOT . '/storage/cache');
 @is_dir(BACKUP_DIR) or @mkdir(BACKUP_DIR, 0750, true);
-@is_dir(CACHE_DIR)  or @mkdir(CACHE_DIR, 0750, true);
+@is_dir(CACHE_DIR) or @mkdir(CACHE_DIR, 0750, true);
 define('UPLOADS_DIR', APP_ROOT . '/storage/uploads');
 @is_dir(UPLOADS_DIR) or @mkdir(UPLOADS_DIR, 0750, true);
 
@@ -52,22 +53,28 @@ $isHttps = !empty($_SERVER['HTTPS']) || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '
 
 $cookieParams = [
     'lifetime' => 0,
-    'path'     => '/',
-    'domain'   => '',
-    'secure'   => $isHttps,
+    'path' => '/',
+    'domain' => '',
+    'secure' => $isHttps,
     'httponly' => true,
     'samesite' => 'Strict',
 ];
 session_name('ARSIP_SID');
 session_set_cookie_params($cookieParams);
 // Skip session for CLI (job runner, migrations) — no web session needed
-if (php_sapi_name() !== 'cli' && session_status() !== PHP_SESSION_ACTIVE) { session_start(); }
+if (php_sapi_name() !== 'cli' && session_status() !== PHP_SESSION_ACTIVE) {
+    session_start();
+}
 
 // Session-hijack guard
-if (empty($_SESSION['_ua_seed'])) { $_SESSION['_ua_seed'] = bin2hex(random_bytes(8)); }
+if (empty($_SESSION['_ua_seed'])) {
+    $_SESSION['_ua_seed'] = bin2hex(random_bytes(8));
+}
 $_ua_now = hash('sha256', ($_SERVER['HTTP_USER_AGENT'] ?? '') . '|' . $_SESSION['_ua_seed']);
 if (!empty($_SESSION['_ua_bind']) && !hash_equals($_SESSION['_ua_bind'], $_ua_now)) {
-    session_destroy(); http_response_code(440); exit('Sesi kedaluwarsa, silakan masuk ulang.');
+    session_destroy();
+    http_response_code(440);
+    exit('Sesi kedaluwarsa, silakan masuk ulang.');
 }
 $_SESSION['_ua_bind'] = $_ua_now;
 
@@ -75,9 +82,13 @@ $_SESSION['_ua_bind'] = $_ua_now;
 $_SESSION['_last_activity'] = time();
 if (!empty($_SESSION['admin_id'])) {
     $idle_limit = 30 * 60;
-    if (isset($_SESSION['_idle_ts']) && (time() - (int)$_SESSION['_idle_ts']) > $idle_limit) {
-        $_SESSION = []; session_destroy();
-        if (php_sapi_name() !== 'cli') { header('Location: ?page=login&timeout=1'); exit; }
+    if (isset($_SESSION['_idle_ts']) && (time() - (int) $_SESSION['_idle_ts']) > $idle_limit) {
+        $_SESSION = [];
+        session_destroy();
+        if (php_sapi_name() !== 'cli') {
+            header('Location: ?page=login&timeout=1');
+            exit;
+        }
     }
     $_SESSION['_idle_ts'] = time();
 }
@@ -92,7 +103,9 @@ header('X-Frame-Options: DENY');
 header('Referrer-Policy: strict-origin-when-cross-origin');
 header('Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb()');
 header('Cross-Origin-Opener-Policy: same-origin');
-if ($isHttps) header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+if ($isHttps) {
+    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+}
 header("Content-Security-Policy: default-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'; object-src 'none'; img-src 'self' data: blob: https://api.qrserver.com https://cdn.plyr.io https://cdn.jsdelivr.net; media-src 'self' blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://app.sandbox.midtrans.com https://app.midtrans.com; frame-src 'self' https://app.sandbox.midtrans.com https://app.midtrans.com; connect-src 'self'");
 
 // ─── Database singleton ───
@@ -111,7 +124,7 @@ if (isset($_GET['timeout']) && $_GET['timeout'] === '1') {
 }
 
 // ─── Constants for routes ───
-const ROUTES_WEB    = APP_ROOT . '/routes/web.php';
-const ROUTES_API    = APP_ROOT . '/routes/api.php';
+const ROUTES_WEB = APP_ROOT . '/routes/web.php';
+const ROUTES_API = APP_ROOT . '/routes/api.php';
 const ROUTES_WEBHOOK = APP_ROOT . '/routes/webhook.php';
-const VIEWS_DIR     = APP_ROOT . '/views';
+const VIEWS_DIR = APP_ROOT . '/views';

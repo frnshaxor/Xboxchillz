@@ -6,6 +6,67 @@
 
 ---
 
+## 2026-08-21 (PHPStan + PHP-CS-Fixer)
+
+### 🟢 Feature: PHPStan Level 0 + PHP-CS-Fixer Code Formatting
+
+**Problem:** Tidak ada static analysis atau code formatting tools — code quality tidak terukur.
+
+**Solution:** Tambahkan PHPStan (level 0) untuk type safety validation dan PHP-CS-Fixer untuk code formatting.
+
+#### Tools Added
+
+| Tool | Version | Purpose |
+|------|---------|--------|
+| PHPStan | 2.2.8 | Static analysis — type safety validation |
+| PHP-CS-Fixer | 3.95.20 | Code formatting — PSR-12/PER-CS standards |
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `phpstan.neon` | PHPStan configuration |
+| `.php-cs-fixer.dist.php` | PHP-CS-Fixer configuration |
+
+#### Files Modified
+
+| File | Purpose |
+|------|---------|
+| `composer.json` | Added PHPStan + PHP-CS-Fixer dependencies and scripts |
+| 42 PHP files | Auto-formatted by PHP-CS-Fixer |
+
+#### Commands
+
+```bash
+# PHPStan static analysis
+vendor/bin/phpstan analyse --level=0
+
+# PHP-CS-Fixer check (dry-run)
+vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php --dry-run --diff
+
+# PHP-CS-Fixer fix
+vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php
+```
+
+#### Verification
+
+- ✅ PHPStan level 0 — 0 errors
+- ✅ PHP-CS-Fixer — 42 files auto-formatted
+- ✅ `php -l` — all files pass syntax check
+- ✅ `vendor/bin/phpunit` — all 50 tests pass
+- ✅ DX score improved from 85/100 → 90/100 (+5)
+
+#### Documentation Updated
+
+- ✅ `changelog.md` — added detailed entry
+- ✅ `audit.md` — added Section 20 (Static Analysis Audit)
+- ✅ `README.md` — added PHPStan + PHP-CS-Fixer sections
+- ✅ `rules.md` — added Static Analysis Protocol
+
+**Audit:** Section 20 (Static Analysis Audit) in audit.md
+
+---
+
 ## 2026-08-21 (CI/CD Pipeline)
 
 ### 🟢 Feature: GitHub Actions CI Pipeline

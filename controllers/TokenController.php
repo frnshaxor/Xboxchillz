@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -18,9 +19,11 @@ class TokenController
     {
         CsrfMiddleware::validate();
 
-        $tok      = strtoupper(trim((string)($_POST['token'] ?? '')));
-        $redirect = (string)($_POST['redirect'] ?? '.');
-        if (!preg_match('/^\?/', $redirect)) $redirect = '.';
+        $tok = strtoupper(trim((string) ($_POST['token'] ?? '')));
+        $redirect = (string) ($_POST['redirect'] ?? '.');
+        if (!preg_match('/^\?/', $redirect)) {
+            $redirect = '.';
+        }
 
         $result = $this->tokenService->verify($tok);
 
@@ -46,9 +49,9 @@ class TokenController
         AuthMiddleware::requireAdmin();
         CsrfMiddleware::validate();
 
-        $label        = trim((string)($_POST['label'] ?? ''));
-        $contactType  = (string)($_POST['contact_type'] ?? 'telegram');
-        $contactValue = trim((string)($_POST['contact_value'] ?? ''));
+        $label = trim((string) ($_POST['label'] ?? ''));
+        $contactType = (string) ($_POST['contact_type'] ?? 'telegram');
+        $contactValue = trim((string) ($_POST['contact_value'] ?? ''));
 
         $result = $this->tokenService->create($label, $contactType, $contactValue);
 
@@ -67,7 +70,7 @@ class TokenController
         AuthMiddleware::requireAdmin();
         CsrfMiddleware::validate();
 
-        $id = (int)($_POST['id'] ?? 0);
+        $id = (int) ($_POST['id'] ?? 0);
         $this->tokenService->toggle($id);
         go('?page=admin&tab=tokens');
     }
@@ -78,7 +81,7 @@ class TokenController
         AuthMiddleware::requireAdmin();
         CsrfMiddleware::validate();
 
-        $id = (int)($_POST['id'] ?? 0);
+        $id = (int) ($_POST['id'] ?? 0);
         $this->tokenService->delete($id);
         go('?page=admin&tab=tokens');
     }

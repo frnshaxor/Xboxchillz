@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -25,8 +26,8 @@ class TelegramApiController
     {
         AuthMiddleware::requireAdmin();
         $body = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-        $token   = $body['token'] ?? null;
-        $chatId  = $body['chat_id'] ?? '';
+        $token = $body['token'] ?? null;
+        $chatId = $body['chat_id'] ?? '';
         $enabled = $body['enabled'] ?? '0';
         Response::json($this->telegramService->save($token, $chatId, $enabled));
     }

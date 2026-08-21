@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -12,10 +13,10 @@ class CsrfMiddleware
     {
         $token = csrf();
         setcookie('csrf_double', $token, [
-            'path'     => '/',
+            'path' => '/',
             'httponly' => false, // JS needs to read it for API calls
             'samesite' => 'Strict',
-            'secure'   => !empty($_SERVER['HTTPS']),
+            'secure' => !empty($_SERVER['HTTPS']),
         ]);
     }
 

@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -36,7 +37,7 @@ class MediaService
             Response::error(404, 'Media tidak ditemukan.');
         }
 
-        $isPoster  = str_ends_with(strtolower($relative), '/poster.jpg');
+        $isPoster = str_ends_with(strtolower($relative), '/poster.jpg');
         $isPreview = str_ends_with(strtolower($relative), '/preview.mp4');
 
         // Access control
@@ -65,10 +66,14 @@ class MediaService
 
         $row = $this->conn->selectOne('SELECT title,source FROM videos WHERE id=?', [$videoId], 'i');
 
-        if (!$row) Response::error(404, 'File video tidak ditemukan.');
+        if (!$row) {
+            Response::error(404, 'File video tidak ditemukan.');
+        }
 
         $file = APP_ROOT . '/' . ltrim($row['source'], '/');
-        if (!is_file($file)) Response::error(404, 'File video tidak ditemukan.');
+        if (!is_file($file)) {
+            Response::error(404, 'File video tidak ditemukan.');
+        }
 
         $name = preg_replace('/[^a-z0-9._-]+/i', '-', $row['title']) . '.mp4';
         Response::download($file, $name);
@@ -80,10 +85,11 @@ class MediaService
     public function getHlsInfo(string $sourcePath): array
     {
         $base = dirname($sourcePath);
+
         return [
             'master' => is_file(APP_ROOT . '/' . $base . '/master.m3u8'),
-            '720p'   => is_file(APP_ROOT . '/' . $base . '/720p.m3u8'),
-            '360p'   => is_file(APP_ROOT . '/' . $base . '/360p.m3u8'),
+            '720p' => is_file(APP_ROOT . '/' . $base . '/720p.m3u8'),
+            '360p' => is_file(APP_ROOT . '/' . $base . '/360p.m3u8'),
             'preview' => is_file(APP_ROOT . '/' . $base . '/preview.mp4'),
         ];
     }

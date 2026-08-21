@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -32,6 +33,7 @@ class Connection
         if (self::$instance === null) {
             self::$instance = new self();
         }
+
         return self::$instance;
     }
 
@@ -52,6 +54,7 @@ class Connection
         $stmt->execute();
         $result = $stmt->get_result()->fetch_assoc();
         $stmt->close();
+
         return $result ?: null;
     }
 
@@ -66,6 +69,7 @@ class Connection
         $stmt->execute();
         $result = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         $stmt->close();
+
         return $result;
     }
 
@@ -80,6 +84,7 @@ class Connection
         $stmt->execute();
         $id = $this->db->insert_id;
         $stmt->close();
+
         return $id;
     }
 
@@ -94,6 +99,7 @@ class Connection
         $stmt->execute();
         $affected = $stmt->affected_rows;
         $stmt->close();
+
         return $affected;
     }
 
@@ -154,6 +160,7 @@ class Connection
             $types = $types ?? $this->inferTypes($params);
             $stmt->bind_param($types, ...$params);
         }
+
         return $stmt;
     }
 
@@ -168,10 +175,17 @@ class Connection
     {
         $types = '';
         foreach ($params as $p) {
-            if (is_int($p))   { $types .= 'i'; continue; }
-            if (is_float($p)) { $types .= 'd'; continue; }
+            if (is_int($p)) {
+                $types .= 'i';
+                continue;
+            }
+            if (is_float($p)) {
+                $types .= 'd';
+                continue;
+            }
             $types .= 's';
         }
+
         return $types;
     }
 }

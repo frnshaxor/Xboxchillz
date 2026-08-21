@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -15,9 +16,9 @@ class Request
 
     public function __construct()
     {
-        $this->get    = $_GET;
-        $this->post   = $_POST;
-        $this->files  = $_FILES;
+        $this->get = $_GET;
+        $this->post = $_POST;
+        $this->files = $_FILES;
         $this->server = $_SERVER;
         $this->method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
     }
@@ -37,13 +38,13 @@ class Request
     /** Get a string input, trimmed. */
     public function string(string $key, string $default = ''): string
     {
-        return trim((string)($this->post[$key] ?? $default));
+        return trim((string) ($this->post[$key] ?? $default));
     }
 
     /** Get an integer input. */
     public function integer(string $key, int $default = 0): int
     {
-        return (int)($this->post[$key] ?? $default);
+        return (int) ($this->post[$key] ?? $default);
     }
 
     /** Get a file upload. */
@@ -56,7 +57,9 @@ class Request
     public function files(string $key): array
     {
         $files = $this->files[$key] ?? null;
-        if (!$files) return [];
+        if (!$files) {
+            return [];
+        }
 
         // Normalize multi-file upload
         if (is_array($files['name'] ?? null)) {
@@ -65,21 +68,22 @@ class Request
             for ($i = 0; $i < $count; $i++) {
                 if ($files['error'][$i] === UPLOAD_ERR_OK) {
                     $list[] = [
-                        'name'     => $files['name'][$i],
+                        'name' => $files['name'][$i],
                         'tmp_name' => $files['tmp_name'][$i],
-                        'size'     => $files['size'][$i],
+                        'size' => $files['size'][$i],
                     ];
                 }
             }
+
             return $list;
         }
 
         // Single file
         if (($files['error'] ?? -1) === UPLOAD_ERR_OK) {
             return [[
-                'name'     => $files['name'],
+                'name' => $files['name'],
                 'tmp_name' => $files['tmp_name'],
-                'size'     => $files['size'],
+                'size' => $files['size'],
             ]];
         }
 
@@ -102,6 +106,7 @@ class Request
     public function ip(): string
     {
         $ip = $this->server['REMOTE_ADDR'] ?? '0.0.0.0';
+
         return substr($ip, 0, 64);
     }
 
@@ -124,6 +129,7 @@ class Request
             $this->body = file_get_contents('php://input');
         }
         $data = json_decode($this->body, true);
+
         return is_array($data) ? $data : null;
     }
 

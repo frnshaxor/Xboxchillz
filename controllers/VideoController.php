@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -14,7 +15,7 @@ class VideoController
     public function __construct(Connection $conn)
     {
         $this->uploadService = new VideoUpload($conn);
-        $this->videoModel    = new Video($conn);
+        $this->videoModel = new Video($conn);
         $this->categoryModel = new Category($conn);
         $this->activityModel = new ActivityLog($conn);
     }
@@ -25,11 +26,13 @@ class VideoController
         AuthMiddleware::requireAdmin();
         CsrfMiddleware::validate();
 
-        $title = trim((string)($_POST['title'] ?? ''));
-        $cat   = (int)($_POST['category_id'] ?? 0);
+        $title = trim((string) ($_POST['title'] ?? ''));
+        $cat = (int) ($_POST['category_id'] ?? 0);
         $files = (new Request())->files('video');
 
-        if (!$files) go('?page=admin&err=upload');
+        if (!$files) {
+            go('?page=admin&err=upload');
+        }
 
         $uploaded = $this->uploadService->process($title, $cat, $files);
 
@@ -46,7 +49,7 @@ class VideoController
         AuthMiddleware::requireAdmin();
         CsrfMiddleware::validate();
 
-        $id = (int)($_POST['id'] ?? 0);
+        $id = (int) ($_POST['id'] ?? 0);
         $this->uploadService->delete($id);
         go('?page=admin');
     }
@@ -57,10 +60,10 @@ class VideoController
         AuthMiddleware::requireAdmin();
         CsrfMiddleware::validate();
 
-        $n = trim((string)($_POST['name'] ?? ''));
+        $n = trim((string) ($_POST['name'] ?? ''));
         if ($n) {
             $this->categoryModel->create($n);
-            $this->activityModel->record((int)$_SESSION['admin_id'], 'category_add', $n);
+            $this->activityModel->record((int) $_SESSION['admin_id'], 'category_add', $n);
         }
         go('?page=admin');
     }
@@ -71,10 +74,10 @@ class VideoController
         AuthMiddleware::requireAdmin();
         CsrfMiddleware::validate();
 
-        $id = (int)($_POST['id'] ?? 0);
+        $id = (int) ($_POST['id'] ?? 0);
         if ($id) {
             $this->categoryModel->delete($id);
-            $this->activityModel->record((int)$_SESSION['admin_id'], 'category_delete', (string)$id);
+            $this->activityModel->record((int) $_SESSION['admin_id'], 'category_delete', (string) $id);
         }
         go('?page=admin');
     }
@@ -87,8 +90,8 @@ class VideoController
         AuthMiddleware::requireAdmin();
         CsrfMiddleware::validate();
 
-        $filename = trim((string)($_POST['filename'] ?? ''));
-        $totalSize = (int)($_POST['total_size'] ?? 0);
+        $filename = trim((string) ($_POST['filename'] ?? ''));
+        $totalSize = (int) ($_POST['total_size'] ?? 0);
 
         if (!$filename || $totalSize <= 0) {
             Response::json(['error' => 'Nama file dan ukuran wajib diisi.'], 422);
@@ -104,8 +107,8 @@ class VideoController
         AuthMiddleware::requireAdmin();
         CsrfMiddleware::validate();
 
-        $uploadId = trim((string)($_POST['upload_id'] ?? ''));
-        $chunkNumber = (int)($_POST['chunk_number'] ?? -1);
+        $uploadId = trim((string) ($_POST['upload_id'] ?? ''));
+        $chunkNumber = (int) ($_POST['chunk_number'] ?? -1);
 
         if (!$uploadId || $chunkNumber < 0 || !isset($_FILES['chunk']) || $_FILES['chunk']['error'] !== UPLOAD_ERR_OK) {
             Response::json(['error' => 'Parameter chunk tidak valid.'], 422);
@@ -121,9 +124,9 @@ class VideoController
         AuthMiddleware::requireAdmin();
         CsrfMiddleware::validate();
 
-        $uploadId = trim((string)($_POST['upload_id'] ?? ''));
-        $categoryId = (int)($_POST['category_id'] ?? 0);
-        $title = trim((string)($_POST['title'] ?? ''));
+        $uploadId = trim((string) ($_POST['upload_id'] ?? ''));
+        $categoryId = (int) ($_POST['category_id'] ?? 0);
+        $title = trim((string) ($_POST['title'] ?? ''));
 
         if (!$uploadId) {
             Response::json(['error' => 'Upload ID wajib diisi.'], 422);
@@ -138,7 +141,7 @@ class VideoController
     {
         AuthMiddleware::requireAdmin();
 
-        $uploadId = trim((string)($_GET['upload_id'] ?? ''));
+        $uploadId = trim((string) ($_GET['upload_id'] ?? ''));
         if (!$uploadId) {
             Response::json(['error' => 'Upload ID wajib diisi.'], 422);
         }
@@ -146,12 +149,12 @@ class VideoController
         $chunks = $this->uploadService->listChunks($uploadId);
         $dir = UPLOADS_DIR . '/' . preg_replace('#[^a-f0-9]#', '', $uploadId);
         $meta = is_dir($dir) ? @json_decode(file_get_contents($dir . '/meta.json'), true) ?: [] : [];
-        $totalChunks = (int)ceil(($meta['total_size'] ?? 0) / VideoUpload::CHUNK_SIZE);
+        $totalChunks = (int) ceil(($meta['total_size'] ?? 0) / VideoUpload::CHUNK_SIZE);
         Response::json([
-            'ok'              => true,
+            'ok' => true,
             'uploaded_chunks' => $chunks,
-            'total_chunks'    => $totalChunks,
-            'filename'        => $meta['filename'] ?? '',
+            'total_chunks' => $totalChunks,
+            'filename' => $meta['filename'] ?? '',
         ]);
     }
 
@@ -161,7 +164,7 @@ class VideoController
         AuthMiddleware::requireAdmin();
         CsrfMiddleware::validate();
 
-        $uploadId = trim((string)($_POST['upload_id'] ?? ''));
+        $uploadId = trim((string) ($_POST['upload_id'] ?? ''));
         if ($uploadId) {
             $this->uploadService->cleanup($uploadId);
         }

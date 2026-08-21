@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class WebhookRetry
@@ -15,7 +16,8 @@ class WebhookRetry
     {
         return $this->conn->insert(
             'INSERT INTO webhook_retry(source,payload) VALUES(?,?)',
-            [$source, $payload], 'ss'
+            [$source, $payload],
+            'ss'
         );
     }
 
@@ -32,7 +34,8 @@ class WebhookRetry
     {
         $this->conn->execute(
             'UPDATE webhook_retry SET status=?, attempts=?, next_retry_at=?, last_error=? WHERE id=?',
-            [$status, $attempts, $nextRetry, $lastError, $id], 'sisss'
+            [$status, $attempts, $nextRetry, $lastError, $id],
+            'sisss'
         );
     }
 }

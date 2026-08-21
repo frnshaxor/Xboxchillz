@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -11,7 +12,7 @@ class AnalyticsService
 
     public function __construct(Connection $conn)
     {
-        $this->eventModel  = new AnalyticsEvent($conn);
+        $this->eventModel = new AnalyticsEvent($conn);
         $this->heatmapModel = new VideoHeatmap($conn);
     }
 
@@ -19,14 +20,14 @@ class AnalyticsService
     public function recordEvent(array $data): void
     {
         $this->eventModel->record([
-            'event'        => $data['event'] ?? 'page_view',
-            'path'         => $data['path'] ?? '/',
+            'event' => $data['event'] ?? 'page_view',
+            'path' => $data['path'] ?? '/',
             'visitor_hash' => $data['visitor_hash'] ?? hash('sha256', client_ip() . '|' . ($_SERVER['HTTP_USER_AGENT'] ?? '')),
-            'video_id'     => $data['video_id'] ?? null,
+            'video_id' => $data['video_id'] ?? null,
             'progress_sec' => $data['progress_sec'] ?? null,
-            'device'       => $data['device'] ?? null,
-            'browser'      => $data['browser'] ?? null,
-            'referrer'     => $data['referrer'] ?? null,
+            'device' => $data['device'] ?? null,
+            'browser' => $data['browser'] ?? null,
+            'referrer' => $data['referrer'] ?? null,
         ]);
     }
 
@@ -42,12 +43,12 @@ class AnalyticsService
     public function getInsights(int $days): array
     {
         return [
-            'metrics'   => $this->eventModel->getMetrics($days),
-            'popular'   => $this->eventModel->getPopularPages($days),
-            'sources'   => $this->eventModel->getSources($days),
-            'heatmap'   => $this->eventModel->getHeatmap($days),
+            'metrics' => $this->eventModel->getMetrics($days),
+            'popular' => $this->eventModel->getPopularPages($days),
+            'sources' => $this->eventModel->getSources($days),
+            'heatmap' => $this->eventModel->getHeatmap($days),
             'retention' => $this->eventModel->getRetention($days),
-            'devices'   => $this->eventModel->getDevices($days),
+            'devices' => $this->eventModel->getDevices($days),
         ];
     }
 
@@ -55,9 +56,10 @@ class AnalyticsService
     public function getVideoHeatmap(int $videoId): array
     {
         $video = (new Video(Connection::getInstance()))->findRawById($videoId);
+
         return [
-            'heatmap'  => $this->heatmapModel->getForVideo($videoId),
-            'duration' => (int)($video['duration_sec'] ?? 0),
+            'heatmap' => $this->heatmapModel->getForVideo($videoId),
+            'duration' => (int) ($video['duration_sec'] ?? 0),
         ];
     }
 }

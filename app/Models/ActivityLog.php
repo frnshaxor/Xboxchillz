@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class ActivityLog
@@ -16,7 +17,8 @@ class ActivityLog
         $ip = client_ip();
         $this->conn->execute(
             'INSERT INTO activity_log(admin_id,action,detail,ip) VALUES(?,?,?,?)',
-            [$adminId, $action, $detail, $ip], 'isss'
+            [$adminId, $action, $detail, $ip],
+            'isss'
         );
     }
 
@@ -28,7 +30,8 @@ class ActivityLog
         $new = !empty($newValues) ? json_encode($newValues, JSON_UNESCAPED_UNICODE) : null;
         $this->conn->execute(
             'INSERT INTO activity_log(admin_id,action,detail,ip,old_values,new_values) VALUES(?,?,?,?,?,?)',
-            [$adminId, $action, $detail, $ip, $old, $new], 'isssss'
+            [$adminId, $action, $detail, $ip, $old, $new],
+            'isssss'
         );
     }
 
@@ -37,7 +40,8 @@ class ActivityLog
     {
         return $this->conn->selectAll(
             'SELECT al.*, a.name FROM activity_log al LEFT JOIN admins a ON a.id=al.admin_id ORDER BY al.created_at DESC LIMIT ?',
-            [$limit], 'i'
+            [$limit],
+            'i'
         );
     }
 }

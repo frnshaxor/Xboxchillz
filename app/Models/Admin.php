@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class Admin
@@ -15,7 +16,8 @@ class Admin
     {
         return $this->conn->selectOne(
             'SELECT id,password,name,totp_secret,totp_enabled FROM admins WHERE email=? AND active=1',
-            [$email], 's'
+            [$email],
+            's'
         );
     }
 
@@ -24,7 +26,8 @@ class Admin
     {
         return $this->conn->selectOne(
             'SELECT name,email,totp_enabled,last_login_at,last_login_ip FROM admins WHERE id=?',
-            [$id], 'i'
+            [$id],
+            'i'
         );
     }
 
@@ -33,7 +36,8 @@ class Admin
     {
         $this->conn->execute(
             'UPDATE admins SET last_login_at=NOW(), last_login_ip=? WHERE id=?',
-            [$ip, $id], 'si'
+            [$ip, $id],
+            'si'
         );
     }
 
@@ -48,7 +52,8 @@ class Admin
     {
         $this->conn->execute(
             'UPDATE admins SET name=?, email=? WHERE id=?',
-            [$name, $email, $id], 'ssi'
+            [$name, $email, $id],
+            'ssi'
         );
     }
 
@@ -57,8 +62,10 @@ class Admin
     {
         $row = $this->conn->selectOne(
             'SELECT id FROM admins WHERE email=? AND id<>?',
-            [$email, $excludeId], 'si'
+            [$email, $excludeId],
+            'si'
         );
+
         return $row !== null;
     }
 
@@ -67,7 +74,8 @@ class Admin
     {
         $this->conn->execute(
             'UPDATE admins SET totp_secret=?, totp_enabled=1 WHERE id=?',
-            [$secret, $id], 'si'
+            [$secret, $id],
+            'si'
         );
     }
 
@@ -76,7 +84,8 @@ class Admin
     {
         $this->conn->execute(
             'UPDATE admins SET totp_secret=NULL, totp_enabled=0 WHERE id=?',
-            [$id], 'i'
+            [$id],
+            'i'
         );
     }
 

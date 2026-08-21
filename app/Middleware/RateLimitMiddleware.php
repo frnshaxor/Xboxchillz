@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -17,18 +18,22 @@ class RateLimitMiddleware
 
         if (is_file($file)) {
             $raw = @file_get_contents($file);
-            if ($raw) $data = json_decode($raw, true) ?: $data;
+            if ($raw) {
+                $data = json_decode($raw, true) ?: $data;
+            }
         }
 
-        $data['hits'] = array_values(array_filter($data['hits'], fn($t) => $t > $now - $window));
+        $data['hits'] = array_values(array_filter($data['hits'], fn ($t) => $t > $now - $window));
 
         if (count($data['hits']) >= $max) {
             file_put_contents($file, json_encode($data), LOCK_EX);
+
             return false; // rate limited
         }
 
         $data['hits'][] = $now;
         file_put_contents($file, json_encode($data), LOCK_EX);
+
         return true; // allowed
     }
 

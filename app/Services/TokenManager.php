@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -11,7 +12,7 @@ class TokenManager
 
     public function __construct(Connection $conn)
     {
-        $this->tokenModel    = new AccessToken($conn);
+        $this->tokenModel = new AccessToken($conn);
         $this->activityModel = new ActivityLog($conn);
     }
 
@@ -34,12 +35,14 @@ class TokenManager
         // Check expiry
         if ($row['expires_at'] && strtotime($row['expires_at']) < time()) {
             $this->tokenModel->markExpired($row['id']);
+
             return ['error' => 'Token ini sudah kedaluwarsa.'];
         }
 
-        grant_access_with_token(Connection::getInstance()->db(), (int)$row['id']);
+        grant_access_with_token(Connection::getInstance()->db(), (int) $row['id']);
         session_regenerate_id(true);
         $this->tokenModel->recordUsage($row['id']);
+
         return ['ok' => true, 'id' => $row['id']];
     }
 
@@ -62,18 +65,19 @@ class TokenManager
             return ['error' => 'Token unik gagal dibuat. Silakan ulangi.'];
         }
 
-        $adminId = (int)$_SESSION['admin_id'];
+        $adminId = (int) $_SESSION['admin_id'];
         $id = $this->tokenModel->create([
-            'token'         => $token,
-            'label'         => $label,
-            'contact_type'  => $contactType,
+            'token' => $token,
+            'label' => $label,
+            'contact_type' => $contactType,
             'contact_value' => $contactValue,
-            'status'        => 'active',
-            'created_by'    => $adminId,
-            'expires_at'    => AccessToken::defaultExpiry(),
+            'status' => 'active',
+            'created_by' => $adminId,
+            'expires_at' => AccessToken::defaultExpiry(),
         ]);
 
         $this->activityModel->record($adminId, 'token_create', "label=$label token=$token");
+
         return ['ok' => true, 'id' => $id, 'token' => $token];
     }
 
@@ -89,12 +93,12 @@ class TokenManager
         }
 
         $id = $this->tokenModel->createFromPayment([
-            'token'         => $token,
-            'label'         => 'Midtrans — ' . $buyerName,
-            'contact_type'  => 'midtrans',
+            'token' => $token,
+            'label' => 'Midtrans — ' . $buyerName,
+            'contact_type' => 'midtrans',
             'contact_value' => $buyerContact,
-            'status'        => 'active',
-            'expires_at'    => AccessToken::defaultExpiry(),
+            'status' => 'active',
+            'expires_at' => AccessToken::defaultExpiry(),
         ]);
 
         return ['ok' => true, 'id' => $id, 'token' => $token];
@@ -104,8 +108,11 @@ class TokenManager
     public function toggle(int $id): array
     {
         $newStatus = $this->tokenModel->toggle($id);
-        if (!$newStatus) return ['error' => 'Token tidak ditemukan.'];
-        $this->activityModel->record((int)$_SESSION['admin_id'], 'token_toggle', "id=$id status=$newStatus");
+        if (!$newStatus) {
+            return ['error' => 'Token tidak ditemukan.'];
+        }
+        $this->activityModel->record((int) $_SESSION['admin_id'], 'token_toggle', "id=$id status=$newStatus");
+
         return ['ok' => true, 'status' => $newStatus];
     }
 
@@ -113,6 +120,7 @@ class TokenManager
     public function update(int $id, string $label, string $contactType, string $contactValue): array
     {
         $this->tokenModel->update($id, $label, $contactType, $contactValue);
+
         return ['ok' => true];
     }
 
@@ -120,7 +128,7 @@ class TokenManager
     public function delete(int $id): void
     {
         $this->tokenModel->delete($id);
-        $this->activityModel->record((int)$_SESSION['admin_id'], 'token_delete', "id=$id");
+        $this->activityModel->record((int) $_SESSION['admin_id'], 'token_delete', "id=$id");
     }
 
     /** List all tokens. */

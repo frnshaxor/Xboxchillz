@@ -125,6 +125,41 @@ php -l <modified_file.php>   # Repeat for EVERY modified PHP file
 
 ---
 
+## 🔬 Static Analysis Protocol
+
+> PHPStan and PHP-CS-Fixer are available for code quality checks. AI agents SHOULD run these tools when making significant changes.
+
+### Tools
+
+| Tool | Command | Purpose |
+|------|---------|--------|
+| PHPStan | `vendor/bin/phpstan analyse --level=0` | Static analysis — type safety |
+| PHP-CS-Fixer | `vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php --dry-run --diff` | Code formatting check |
+
+### When to Run
+
+| Change Type | Run PHPStan? | Run PHP-CS-Fixer? |
+|-------------|-------------|-------------------|
+| New PHP class | ✅ YES | ✅ YES |
+| Modify existing PHP | ✅ YES | ✅ YES |
+| CSS-only changes | ❌ No | ❌ No |
+| JS-only changes | ❌ No | ❌ No |
+| Config changes | ❌ No | ❌ No |
+
+### Workflow
+
+1. **Before commit:** Run `vendor/bin/phpstan analyse --level=0`
+2. **Before commit:** Run `vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php --dry-run --diff`
+3. **If errors:** Fix issues before proceeding
+4. **If formatting issues:** Run `vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php` to auto-fix
+
+### Current Level
+
+- **PHPStan Level:** 0 (basic type safety)
+- **PHP-CS-Fixer Rules:** PER-CS + PSR-12
+
+---
+
 ## 🔄 CI/CD Protocol
 
 > GitHub Actions CI pipeline runs on every push to master and pull requests. AI agents MUST understand this protocol.

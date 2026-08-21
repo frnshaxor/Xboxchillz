@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class Video
@@ -25,7 +26,8 @@ class Video
     {
         return $this->conn->selectOne(
             'SELECT v.*, c.name category FROM videos v LEFT JOIN categories c ON c.id=v.category_id WHERE v.id=?',
-            [$id], 'i'
+            [$id],
+            'i'
         );
     }
 
@@ -40,7 +42,8 @@ class Video
     {
         return $this->conn->selectOne(
             'SELECT v.*, c.name category FROM videos v LEFT JOIN categories c ON c.id=v.category_id WHERE v.slug=?',
-            [$slug], 's'
+            [$slug],
+            's'
         );
     }
 
@@ -50,9 +53,11 @@ class Video
         if ($categoryId) {
             return $this->conn->selectAll(
                 'SELECT v.*, c.name category FROM videos v LEFT JOIN categories c ON c.id=v.category_id WHERE v.category_id=? ORDER BY v.created_at DESC',
-                [$categoryId], 'i'
+                [$categoryId],
+                'i'
             );
         }
+
         return $this->conn->selectAll(
             'SELECT v.*, c.name category FROM videos v LEFT JOIN categories c ON c.id=v.category_id ORDER BY v.created_at DESC'
         );
@@ -68,14 +73,19 @@ class Video
     public function delete(int $id): bool
     {
         $video = $this->conn->selectOne('SELECT slug FROM videos WHERE id=?', [$id], 'i');
-        if (!$video) return false;
+        if (!$video) {
+            return false;
+        }
 
         $dir = MEDIA_ROOT . '/' . $video['slug'];
         if (is_dir($dir) && strpos(realpath($dir) ?: '', realpath(MEDIA_ROOT)) === 0) {
-            foreach (glob($dir . '/*') ?: [] as $f) @unlink($f);
+            foreach (glob($dir . '/*') ?: [] as $f) {
+                @unlink($f);
+            }
             @rmdir($dir);
         }
         $this->conn->execute('DELETE FROM videos WHERE id=?', [$id], 'i');
+
         return true;
     }
 
@@ -83,6 +93,7 @@ class Video
     public function getSourcePath(int $id): ?string
     {
         $row = $this->conn->selectOne('SELECT title,source FROM videos WHERE id=?', [$id], 'i');
+
         return $row ? APP_ROOT . '/' . ltrim($row['source'], '/') : null;
     }
 
@@ -90,6 +101,7 @@ class Video
     public function getPosterPath(int $id): ?string
     {
         $row = $this->conn->selectOne('SELECT poster FROM videos WHERE id=?', [$id], 'i');
+
         return $row ? APP_ROOT . '/' . ltrim($row['poster'], '/') : null;
     }
 
@@ -111,28 +123,31 @@ class Video
             $like = '%' . $search . '%';
             $countRow = $this->conn->selectOne(
                 'SELECT COUNT(*) c FROM videos v LEFT JOIN categories c ON c.id=v.category_id WHERE v.title LIKE ? OR c.name LIKE ?',
-                [$like, $like], 'ss'
+                [$like, $like],
+                'ss'
             );
-            $total = (int)($countRow['c'] ?? 0);
+            $total = (int) ($countRow['c'] ?? 0);
 
             $videos = $this->conn->selectAll(
                 'SELECT v.id,v.title,v.slug,v.category_id,v.poster,v.source,v.duration_sec,v.size_bytes,v.views,v.status,v.created_at,c.name AS category'
                 . ' FROM videos v LEFT JOIN categories c ON c.id=v.category_id'
                 . ' WHERE v.title LIKE ? OR c.name LIKE ?'
                 . ' ORDER BY v.created_at DESC LIMIT ? OFFSET ?',
-                [$like, $like, $perPage, $offset], 'ssii'
+                [$like, $like, $perPage, $offset],
+                'ssii'
             );
         } else {
             $countRow = $this->conn->selectOne(
                 'SELECT COUNT(*) c FROM videos v LEFT JOIN categories c ON c.id=v.category_id'
             );
-            $total = (int)($countRow['c'] ?? 0);
+            $total = (int) ($countRow['c'] ?? 0);
 
             $videos = $this->conn->selectAll(
                 'SELECT v.id,v.title,v.slug,v.category_id,v.poster,v.source,v.duration_sec,v.size_bytes,v.views,v.status,v.created_at,c.name AS category'
                 . ' FROM videos v LEFT JOIN categories c ON c.id=v.category_id'
                 . ' ORDER BY v.created_at DESC LIMIT ? OFFSET ?',
-                [$perPage, $offset], 'ii'
+                [$perPage, $offset],
+                'ii'
             );
         }
 
@@ -144,8 +159,10 @@ class Video
     {
         $affected = $this->conn->execute(
             'UPDATE videos SET title=?, category_id=? WHERE id=?',
-            [$title, $categoryId, $id], 'sii'
+            [$title, $categoryId, $id],
+            'sii'
         );
+
         return $affected > 0;
     }
 }

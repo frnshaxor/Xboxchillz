@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class Setting
@@ -12,7 +13,7 @@ class Setting
 
     /**
      * Get a setting value (with in-memory cache).
-     * 
+     *
      * Note: This uses the global setting() helper for cache consistency.
      */
     public function get(string $key, string $fallback = ''): string
@@ -34,6 +35,7 @@ class Setting
         foreach ($keys as $key => $fallback) {
             $result[$key] = setting($db, $key, $fallback);
         }
+
         return $result;
     }
 }

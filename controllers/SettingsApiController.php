@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -6,9 +7,7 @@ declare(strict_types=1);
  */
 class SettingsApiController
 {
-    public function __construct(Connection $conn)
-    {
-    }
+    public function __construct(Connection $conn) {}
 
     /** Get public state (site name, admin status, CSRF, token info). */
     public function state(): void
@@ -21,9 +20,9 @@ class SettingsApiController
             'has_access' => has_access(),
         ];
         if (has_access()) {
-            $data['token_label']       = $_SESSION['access_token_label'] ?? null;
-            $data['token_created_at']  = $_SESSION['access_token_created_at'] ?? null;
-            $data['token_expires_at']  = $_SESSION['access_token_expires_at'] ?? null;
+            $data['token_label'] = $_SESSION['access_token_label'] ?? null;
+            $data['token_created_at'] = $_SESSION['access_token_created_at'] ?? null;
+            $data['token_expires_at'] = $_SESSION['access_token_expires_at'] ?? null;
         }
         Response::json($data);
     }
@@ -33,9 +32,9 @@ class SettingsApiController
     {
         $db = Connection::getInstance()->db();
         Response::json([
-            'text'     => setting($db, 'watermark_text', 'Codename F'),
+            'text' => setting($db, 'watermark_text', 'Codename F'),
             'position' => setting($db, 'watermark_position', 'br'),
-            'opacity'  => (int)setting($db, 'watermark_opacity', '60'),
+            'opacity' => (int) setting($db, 'watermark_opacity', '60'),
         ]);
     }
 
@@ -47,9 +46,9 @@ class SettingsApiController
         CsrfMiddleware::validateApi($body);
 
         $db = Connection::getInstance()->db();
-        set_setting($db, 'watermark_text', (string)($body['text'] ?? ''));
-        set_setting($db, 'watermark_position', (string)($body['position'] ?? 'br'));
-        set_setting($db, 'watermark_opacity', (string)(int)($body['opacity'] ?? 60));
+        set_setting($db, 'watermark_text', (string) ($body['text'] ?? ''));
+        set_setting($db, 'watermark_position', (string) ($body['position'] ?? 'br'));
+        set_setting($db, 'watermark_opacity', (string) (int) ($body['opacity'] ?? 60));
         Response::json(['ok' => true]);
     }
 
@@ -58,8 +57,8 @@ class SettingsApiController
     {
         AuthMiddleware::requireAdmin();
         $body = json_decode(file_get_contents('php://input'), true) ?? $_POST;
-        $mb = max(10, min(20480, (int)($body['mb'] ?? 2048)));
-        set_setting(Connection::getInstance()->db(), 'upload_max_mb', (string)$mb);
+        $mb = max(10, min(20480, (int) ($body['mb'] ?? 2048)));
+        set_setting(Connection::getInstance()->db(), 'upload_max_mb', (string) $mb);
         Response::json(['ok' => true, 'mb' => $mb]);
     }
 
@@ -77,7 +76,7 @@ class SettingsApiController
     public function cacheBust(): void
     {
         AuthMiddleware::requireAdmin();
-        $newVer = (string)time();
+        $newVer = (string) time();
         set_setting(Connection::getInstance()->db(), 'cache_ver', $newVer);
         Response::json(['ok' => true, 'cache_ver' => $newVer]);
     }
@@ -105,9 +104,11 @@ class SettingsApiController
         $file = $_GET['file'] ?? '';
         $service = new BackupService();
         $path = $service->getPath($file);
-        if (!$path) Response::error(404, 'File tidak ditemukan.');
+        if (!$path) {
+            Response::error(404, 'File tidak ditemukan.');
+        }
         header('Content-Type: application/gzip');
-        header('Content-Length: ' . (string)filesize($path));
+        header('Content-Length: ' . (string) filesize($path));
         header('Content-Disposition: attachment; filename="' . basename($path) . '"');
         readfile($path);
         exit;

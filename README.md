@@ -1035,7 +1035,32 @@ vendor/bin/phpunit
 
 ---
 
-## 17. Audit Report
+## 17. Static Analysis
+
+### PHPStan
+
+PHPStan performs static analysis on PHP code to find bugs and type errors.
+
+```bash
+# Run PHPStan analysis
+vendor/bin/phpstan analyse --level=0
+```
+
+### PHP-CS-Fixer
+
+PHP-CS-Fixer automatically formats code to follow PER-CS and PSR-12 standards.
+
+```bash
+# Check formatting (dry-run)
+vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php --dry-run --diff
+
+# Fix formatting
+vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php
+```
+
+---
+
+## 18. Audit Report
 
 See [audit.md](audit.md) for a comprehensive code audit covering security, workflows, and code quality.
 

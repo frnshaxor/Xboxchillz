@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -46,6 +47,7 @@ class BackupService
     {
         $db = Connection::getInstance()->db();
         $rows = $db->query('SELECT id,file,size_bytes,created_at FROM backups ORDER BY created_at DESC')->fetch_all(MYSQLI_ASSOC);
+
         return $rows;
     }
 
@@ -64,6 +66,7 @@ class BackupService
         if (!$realPath || !$realDir || !str_starts_with($realPath, $realDir . DIRECTORY_SEPARATOR)) {
             return null;
         }
+
         return is_file($realPath) ? $realPath : null;
     }
 
@@ -71,8 +74,10 @@ class BackupService
     public function prune(int $keep = 14): void
     {
         $files = glob(BACKUP_DIR . '/*.sql.gz');
-        if (!$files || count($files) <= $keep) return;
-        usort($files, fn($a, $b) => filemtime($b) - filemtime($a));
+        if (!$files || count($files) <= $keep) {
+            return;
+        }
+        usort($files, fn ($a, $b) => filemtime($b) - filemtime($a));
         foreach (array_slice($files, $keep) as $f) {
             @unlink($f);
         }

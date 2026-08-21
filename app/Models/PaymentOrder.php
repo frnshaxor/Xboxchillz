@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class PaymentOrder
@@ -26,8 +27,10 @@ class PaymentOrder
         $this->conn->beginTransaction();
         $row = $this->conn->selectOne(
             'SELECT * FROM payment_orders WHERE order_id=? FOR UPDATE',
-            [$orderId], 's'
+            [$orderId],
+            's'
         );
+
         return $row;
     }
 
@@ -36,7 +39,8 @@ class PaymentOrder
     {
         return $this->conn->selectOne(
             'SELECT * FROM payment_orders WHERE order_id=?',
-            [$orderId], 's'
+            [$orderId],
+            's'
         );
     }
 
@@ -45,7 +49,8 @@ class PaymentOrder
     {
         $this->conn->execute(
             'UPDATE payment_orders SET snap_token=? WHERE order_id=?',
-            [$snapToken, $orderId], 'ss'
+            [$snapToken, $orderId],
+            'ss'
         );
     }
 

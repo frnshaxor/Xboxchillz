@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 /**
@@ -31,6 +32,7 @@ class Response
         if (!is_file($file)) {
             http_response_code(504);
             echo 'View not found: ' . htmlspecialchars($template);
+
             return;
         }
         require $file;
@@ -47,9 +49,11 @@ class Response
         $safeName = preg_replace('/[^a-zA-Z0-9._-]/', '-', $filename);
         $safeName = preg_replace('/-{2,}/', '-', $safeName);
         $safeName = trim($safeName, '-.');
-        if ($safeName === '') $safeName = 'download.mp4';
+        if ($safeName === '') {
+            $safeName = 'download.mp4';
+        }
         header('Content-Type: video/mp4');
-        header('Content-Length: ' . (string)filesize($filePath));
+        header('Content-Length: ' . (string) filesize($filePath));
         header('Content-Disposition: attachment; filename="' . $safeName . '"; filename*=UTF-8\'\'' . rawurlencode($safeName));
         header('Cache-Control: private, no-store');
         readfile($filePath);
@@ -60,16 +64,18 @@ class Response
     public static function serveMedia(string $realPath, string $extension, bool $isPreview = false): void
     {
         $types = [
-            'jpg'  => 'image/jpeg',
+            'jpg' => 'image/jpeg',
             'm3u8' => 'application/vnd.apple.mpegurl',
-            'ts'   => 'video/mp2t',
-            'mp4'  => 'video/mp4',
+            'ts' => 'video/mp2t',
+            'mp4' => 'video/mp4',
         ];
         header('Content-Type: ' . ($types[$extension] ?? 'application/octet-stream'));
-        header('Content-Length: ' . (string)filesize($realPath));
+        header('Content-Length: ' . (string) filesize($realPath));
         header('Cache-Control: ' . ($isPreview ? 'public,max-age=86400' : 'private,no-store'));
         header('X-Content-Type-Options: nosniff');
-        if ($_SERVER['REQUEST_METHOD'] !== 'HEAD') readfile($realPath);
+        if ($_SERVER['REQUEST_METHOD'] !== 'HEAD') {
+            readfile($realPath);
+        }
         exit;
     }
 

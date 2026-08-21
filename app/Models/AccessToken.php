@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 class AccessToken
@@ -15,7 +16,8 @@ class AccessToken
     {
         return $this->conn->selectOne(
             "SELECT id, expires_at FROM access_tokens WHERE token=? AND status='active'",
-            [$token], 's'
+            [$token],
+            's'
         );
     }
 
@@ -50,7 +52,8 @@ class AccessToken
     {
         $this->conn->execute(
             'UPDATE access_tokens SET use_count=use_count+1, last_used_at=NOW() WHERE id=?',
-            [$id], 'i'
+            [$id],
+            'i'
         );
     }
 
@@ -66,9 +69,12 @@ class AccessToken
     public function toggle(int $id): string
     {
         $row = $this->conn->selectOne('SELECT status FROM access_tokens WHERE id=?', [$id], 'i');
-        if (!$row) return '';
+        if (!$row) {
+            return '';
+        }
         $newStatus = $row['status'] === 'active' ? 'suspended' : 'active';
         $this->conn->execute('UPDATE access_tokens SET status=? WHERE id=?', [$newStatus, $id], 'si');
+
         return $newStatus;
     }
 
@@ -77,7 +83,8 @@ class AccessToken
     {
         $this->conn->execute(
             'UPDATE access_tokens SET label=?, contact_type=?, contact_value=? WHERE id=?',
-            [$label, $contactType, $contactValue, $id], 'sssi'
+            [$label, $contactType, $contactValue, $id],
+            'sssi'
         );
     }
 
@@ -102,7 +109,10 @@ class AccessToken
             $token = substr($raw, 0, 4) . '-' . substr($raw, 4, 4) . '-' . substr($raw, 8, 4);
             $exists = $this->conn->selectOne('SELECT id FROM access_tokens WHERE token=?', [$token], 's') !== null;
         }
-        if ($exists) throw new \RuntimeException('Token unik gagal dibuat.');
+        if ($exists) {
+            throw new \RuntimeException('Token unik gagal dibuat.');
+        }
+
         return $token;
     }
 
