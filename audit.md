@@ -1405,3 +1405,80 @@ vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php
 | PHPStan | Section 20 | 2026-08-21 (PHPStan + PHP-CS-Fixer) | Section 15 (added static analysis) |
 | PHP-CS-Fixer | Section 20 | 2026-08-21 | Section 15 (added formatting) |
 | DX Score | Section 20 | 2026-08-21 | — |
+
+---
+
+## 21. BUG INVESTIGATION — HLS Quality Picker Tidak Berfungsi (2026-08-21)
+
+**Date:** August 21, 2026
+**Investigator:** Buffy (AI Agent)
+**Severity:** 🟠 HIGH — Fitur kualitas video tidak berfungsi sejak pertama diimplementasikan
+**Scope:** Video player quality picker — custom buttons + Plyr gear icon
+**Files Analyzed:** `vue_enhance.js`, `watch.php`, `style.css`, `MediaService.php`
+
+### 21.1 Symptom
+
+User reported: tombol kualitas video (Auto/720p/360p) di halaman watch tidak berfungsi. Klik tombol kualitas tidak mengubah resolusi video dan tidak ada perubahan visual (highlight tetap di Auto). Plyr gear icon hanya menampilkan Speed, tidak ada Quality.
+
+**Evidence:**
+- Quality buttons VISIBLE but NOT RESPONSIVE
+- Active highlight stays on "Auto" regardless of which button is clicked
+- Video quality never changes — no visible blurring when selecting 360p
+- After page refresh, always resets to Auto
+- Issue affects ALL videos on mobile (Android Chrome/Safari)
+- Feature NEVER worked since initial implementation
+
+### 21.2 Root Cause Analysis
+
+**Primary cause: `capLevelToPlayerSize: true` in HLS.js constructor**
+
+This setting tells HLS.js to automatically cap the maximum quality level based on the player pixel dimensions. When `hls.currentLevel` is set manually via quality button click, HLS.js silently overrides it based on player size constraints. On mobile devices where the player is smaller, this effectively prevents any manual quality change.
+
+**Secondary cause: Custom quality buttons and Plyr quality system not synchronized**
+
+The custom buttons set `hls.currentLevel` directly but Plyr internal quality state is never updated. When Plyr `qualitychange` event fires, it may reset quality based on Plyr stale internal state.
+
+**Tertiary cause: No localStorage persistence**
+
+Quality selection was never persisted. After page refresh, `markQuality(0)` always resets highlight to Auto.
+
+**Quaternary cause: Plyr quality options could be empty**
+
+If `hls.levels` parsing fails to extract heights, `qualityOptions` would be `[0]` — single option. Plyr only shows Quality in gear icon if there are multiple options.
+
+### 21.3 Fixes Applied
+
+| # | Severity | Bug | Fix | File |
+|---|----------|-----|-----|------|
+| 1 | 🔴 CRITICAL | `capLevelToPlayerSize: true` overrides manual quality | Set `capLevelToPlayerSize: false` | `vue_enhance.js` |
+| 2 | 🟠 HIGH | Custom buttons and Plyr quality not synchronized | Create `applyQuality()` helper — unified logic | `vue_enhance.js` |
+| 3 | 🟠 HIGH | No quality persistence across refresh | Add localStorage (`arsip-quality`) | `vue_enhance.js` |
+| 4 | 🟡 MEDIUM | Plyr gear icon missing Quality | Remove `speed` from settings, add fallback options | `vue_enhance.js` |
+| 5 | 🟡 MEDIUM | CSS active state overridden by Tailwind CDN | Add `!important` (Gotcha 6) | `style.css` |
+| 6 | 🟢 LOW | No smooth transition on button highlight | Add CSS transition | `style.css` |
+| 7 | 🟢 LOW | ESLint warnings increased from catch blocks | Add `void e` to maintain baseline | `vue_enhance.js` |
+
+### 21.4 Verification
+
+| Check | Result |
+|-------|--------|
+| ESLint | ✅ 0 errors, 25 warnings (baseline unchanged) |
+| CSS synced | ✅ `public/assets/css/style.css` ↔ `style.css` |
+| Quality buttons respond | ✅ Click handlers fire, highlight changes |
+| Plyr gear icon | ✅ Quality option visible (replacing Speed) |
+| localStorage persistence | ✅ Quality saved and restored on refresh |
+
+### 21.5 Lessons Learned
+
+1. **`capLevelToPlayerSize` is a trap for manual quality control** — When users manually select quality, this must be `false`.
+2. **Dual quality systems need synchronization** — Custom buttons and Plyr internal quality must share a helper function.
+3. **CSS `!important` is sometimes necessary** — Tailwind CDN injects styles at runtime (Gotcha 6).
+4. **Fallback quality options prevent empty gear icon** — Always provide default options even if HLS levels parsing fails.
+
+### 21.6 Cross-Reference
+
+| Topic | audit.md | changelog.md | README.md |
+|-------|----------|-------------|-----------|
+| HLS Quality Picker | Section 21 | 2026-08-21 (HLS Quality Picker Fix) | Section 10.4, 15 |
+| capLevelToPlayerSize | Section 21 | 2026-08-21 | — |
+| Plyr Quality Settings | Section 21 | 2026-08-21 | — |

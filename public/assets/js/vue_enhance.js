@@ -585,60 +585,93 @@
     const video = wrap.querySelector('video');
     const hlsSrc = wrap.dataset.hls;
     const qualityButtons = $$('[data-quality]', wrap.parentElement);
+    const QUALITY_STORAGE_KEY = 'arsip-quality';
+
     const markQuality = (quality) => qualityButtons.forEach((button) => button.classList.toggle('active', Number(button.dataset.quality) === quality));
 
-    // Fix: mark default quality (Auto = 0) as active on load
-    markQuality(0);
+    // Restore persisted quality or default to Auto (0)
+    let savedQuality = 0;
+    try {
+      const stored = localStorage.getItem(QUALITY_STORAGE_KEY);
+      if (stored !== null) savedQuality = Number(stored);
+    } catch (e) { void e; /* quota */ }
+    markQuality(savedQuality);
 
     const createPlayer = (qualityOptions) => new Plyr(video, {
       controls: ['play-large', 'restart', 'rewind', 'play', 'fast-forward', 'progress', 'current-time', 'duration', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
-      settings: ['captions', 'quality', 'speed', 'loop'],
-      quality: { default: 0, options: qualityOptions },
+      settings: ['captions', 'quality', 'loop'],
+      quality: { default: savedQuality, options: qualityOptions },
       iconUrl: '/assets/plyr.svg',
       blankVideo: 'https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/blank.mp4',
-      speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] },
       keyboard: { focused: true, global: true },
       tooltips: { controls: true, seek: true },
       seekTime: 10,
       ratio: '16:9',
       storage: { enabled: true, key: 'arsip-plyr' },
-      i18n: { play: 'Putar', pause: 'Jeda', mute: 'Bisukan', unmute: 'Suarakan', enableCaptions: 'Aktifkan takarir', disableCaptions: 'Matikan takarir', enterFullscreen: 'Layar penuh', exitFullscreen: 'Keluar layar penuh', settings: 'Pengaturan', speed: 'Kecepatan', normal: 'Normal', quality: 'Kualitas', pip: 'Picture in Picture', qualityBadge: 'Resolusi', loop: 'Ulangi' }
+      i18n: { play: 'Putar', pause: 'Jeda', mute: 'Bisukan', unmute: 'Suarakan', enableCaptions: 'Aktifkan takarir', disableCaptions: 'Matikan takarir', enterFullscreen: 'Layar penuh', exitFullscreen: 'Keluar layar penuh', settings: 'Pengaturan', normal: 'Normal', quality: 'Kualitas', pip: 'Picture in Picture', qualityBadge: 'Resolusi', loop: 'Ulangi' }
     });
 
+    function applyQuality(quality, hls, player) {
+      const levelIdx = quality === 0 ? -1 : hls.levels.findIndex(level => Number(level.height) === quality);
+      hls.currentLevel = levelIdx;
+      markQuality(quality);
+      try { localStorage.setItem(QUALITY_STORAGE_KEY, String(quality)); } catch (e) { void e; /* quota */ }
+      // Sync Plyr quality setting if player exists
+      if (player && player.quality !== undefined) {
+        try { player.quality = quality; } catch (e) { void e; /* Plyr internal */ }
+      }
+    }
+
     if (hlsSrc && !video.canPlayType('application/vnd.apple.mpegurl') && window.Hls && window.Hls.isSupported()) {
-      const hls = new Hls({ enableWorker: true, lowLatencyMode: false, capLevelToPlayerSize: true, backBufferLength: 90 });
+      const hls = new Hls({ enableWorker: true, lowLatencyMode: false, capLevelToPlayerSize: false, backBufferLength: 90 });
       hls.loadSource(hlsSrc);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         const heights = [...new Set(hls.levels.map(level => Number(level.height)).filter(Boolean))].sort((a, b) => b - a);
-        const player = createPlayer([0, ...heights]);
+        // Ensure at least default options so Plyr shows quality in gear icon
+        const opts = heights.length > 0 ? [0, ...heights] : [0, 720, 360];
+        const player = createPlayer(opts);
+        // Apply saved quality on load
+        if (savedQuality !== 0) {
+          applyQuality(savedQuality, hls, player);
+        }
         player.on('qualitychange', (event) => {
           const quality = Number(event.detail && event.detail.quality);
-          hls.currentLevel = quality === 0 ? -1 : hls.levels.findIndex(level => Number(level.height) === quality);
-          markQuality(quality);
+          if (Number.isNaN(quality)) return;
+          applyQuality(quality, hls, player);
         });
         qualityButtons.forEach((button) => button.addEventListener('click', () => {
           const quality = Number(button.dataset.quality);
-          hls.currentLevel = quality === 0 ? -1 : hls.levels.findIndex(level => Number(level.height) === quality);
-          markQuality(quality);
+          applyQuality(quality, hls, player);
         }));
         window.__player = player;
       });
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (data && data.fatal) {
-          console.warn('HLS playback error', data.type);
           // Show error fallback UI
           showVideoError(wrap, 'Gagal memuat video. Pastikan koneksi internet stabil dan coba muat ulang.');
         }
       });
       window.__hls = hls;
     } else {
-      window.__player = createPlayer([0]);
       // Safari/native HLS fallback: load the selected rendition directly.
+      const opts = hlsSrc ? [0, 720, 360] : [0];
+      window.__player = createPlayer(opts);
+      // Apply saved quality on load
+      if (savedQuality !== 0 && hlsSrc) {
+        const src = savedQuality === 720 ? wrap.dataset.hls720 : savedQuality === 360 ? wrap.dataset.hls360 : hlsSrc;
+        if (src) { video.src = src; video.load(); video.play().catch(() => {}); markQuality(savedQuality); }
+      }
       qualityButtons.forEach((button) => button.addEventListener('click', () => {
         const quality = Number(button.dataset.quality);
         const src = quality === 720 ? wrap.dataset.hls720 : quality === 360 ? wrap.dataset.hls360 : hlsSrc;
-        if (src) { video.src = src; video.load(); video.play().catch(() => {}); markQuality(quality); }
+        if (src) {
+          video.src = src;
+          video.load();
+          video.play().catch(() => {});
+        }
+        markQuality(quality);
+        try { localStorage.setItem(QUALITY_STORAGE_KEY, String(quality)); } catch (e) { void e; /* quota */ }
       }));
     }
 
