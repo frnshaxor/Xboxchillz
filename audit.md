@@ -454,6 +454,7 @@ The job was marked `done` before ffmpeg/worker finished. If the worker failed, t
 ## 10. CUMULATIVE FINDINGS INDEX
 
 > All findings from Sections 3 and 9, cross-referenced with changelog entries.
+> **AI agents:** See `rules.md` Section: Known Gotchas for lessons learned from these findings.
 
 | # | Severity | Finding | File | Fix Status | Changelog Reference |
 |---|----------|---------|------|------------|--------------------|

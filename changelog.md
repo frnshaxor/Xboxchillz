@@ -6,6 +6,58 @@
 
 ---
 
+## 2026-08-21 (Cross-Reference Audit)
+
+### 🟢 Enhancement: 5-File Cross-Reference Audit & Fixes
+
+**Problem:** The 5 MD files (README.md, audit.md, changelog.md, rules.md, AUTODEPLOY.md) had inconsistent cross-references. Some files referenced others heavily, while some connections were missing or weak.
+
+**Solution:** Comprehensive audit of all cross-references, added Document Relationship Map, and fixed all disconnected references.
+
+#### Cross-Reference Matrix (Before → After)
+
+| From → To | Before | After | Change |
+|-----------|--------|-------|--------|
+| README.md → rules.md | 1 ref | 2 refs | +1 |
+| README.md → AUTODEPLOY.md | 1 ref | 1 ref | — |
+| audit.md → rules.md | 1 ref | 2 refs | +1 |
+| audit.md → changelog.md | 6 refs | 6 refs | — |
+| rules.md → AUTODEPLOY.md | 1 ref | 2 refs | +1 |
+| AUTODEPLOY.md → rules.md | 1 ref | 5 refs | +4 |
+| AUTODEPLOY.md → README.md | 1 ref | 4 refs | +3 |
+| AUTODEPLOY.md → audit.md | 1 ref | 4 refs | +3 |
+| AUTODEPLOY.md → changelog.md | 1 ref | 4 refs | +3 |
+
+#### New Sections Added
+
+| File | Section | Content |
+|------|---------|--------|
+| `rules.md` | 🔗 Document Relationship Map | Visual ASCII art map showing how 5 files connect |
+| `rules.md` | When to Read Which File | Table: situation → which file to read |
+| `rules.md` | Document Responsibilities | Table: what each file is responsible for |
+| `AUTODEPLOY.md` | How Each File Relates | Table: what each file provides vs what AUTODEPLOY provides |
+| `AUTODEPLOY.md` | When to Use AUTODEPLOY.md | Table: scenario → whether to use AUTODEPLOY.md |
+
+#### Files Modified
+
+| File | Changes |
+|------|--------|
+| `rules.md` | Added Document Relationship Map (~60 lines), added "Server down" edge case |
+| `AUTODEPLOY.md` | Added expanded Cross-References section (~30 lines) |
+| `audit.md` | Added rules.md reference in Cumulative Findings Index |
+| `README.md` | Added rules.md + AUTODEPLOY.md references in Quick Reference section |
+| `changelog.md` | Added this entry |
+
+#### Verification
+- ✅ All 5 files now cross-reference each other
+- ✅ Document Relationship Map added to rules.md
+- ✅ "When to Read Which File" guide added
+- ✅ "Document Responsibilities" table added
+- ✅ AUTODEPLOY.md expanded with relationship details
+- ✅ No broken references found
+
+---
+
 ## 2026-08-21 (AUTODEPLOY.md)
 
 ### 🟢 Feature: AUTODEPLOY.md — VPS Server Disaster Recovery Guide

@@ -690,6 +690,7 @@ master ────────────────────────�
 | **Broken feature branch** | Delete branch, start fresh from master |
 | **Multiple features** | Use separate feature branches for each |
 | **Production incident** | Create `hotfix/*` branch, fix, merge to master, push |
+| **Server down** | Rebuild from `AUTODEPLOY.md` Quick Start script |
 | **DB schema change** | Create migration, test, commit with schema changes |
 | **CSS changes** | Edit public CSS, sync to root, commit both files |
 
@@ -907,6 +908,87 @@ arsip-layar/
 | Modify theme colors | `public/assets/css/style.css` (CSS custom properties in `:root`) |
 | Add Shadcn component | Create HTML using CSS vars in relevant view |
 | Add database column | `schema.sql` + `ALTER TABLE` in `migrations/` |
+
+---
+
+## 🔗 Document Relationship Map
+
+> How the 5 MD files connect to each other. **AI agents MUST understand this map.**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        rules.md                                 │
+│              (AI Agent Guidelines — PRIMARY REFERENCE)          │
+│                                                                 │
+│  • Pre/Post Task Checklists                                     │
+│  • Non-Negotiable Rules (Security, Documentation, Syntax)       │
+│  • ESLint, CSS, Git, DB, Communication Protocols                │
+│  • AI Agent Workflow (16-step end-to-end)                       │
+│  • Known Gotchas & Lessons Learned                              │
+│  • Architecture Quick Reference                                 │
+│  • Document Relationship Map (THIS SECTION)                     │
+│                                                                 │
+│  READ THIS FIRST — before any task                              │
+└───────────────┬─────────────────────────────────────────────────┘
+                │
+                │ references
+                ▼
+┌───────────────────────────┐    ┌───────────────────────────────┐
+│       README.md           │    │        AUTODEPLOY.md          │
+│  (Technical Reference)    │    │  (Server Setup & Recovery)    │
+│                           │    │                               │
+│  • Architecture           │    │  • Quick Start Script         │
+│  • Database Schema        │◄───│  • Server Specifications      │
+│  • API Routes             │    │  • Package Installation       │
+│  • Security Measures      │    │  • Service Configuration      │
+│  • Known Issues           │    │  • Security Setup             │
+│  • Deployment Guide       │    │  • Database Setup             │
+│                           │    │  • Backup & Restore           │
+│  READ for code context    │    │  • Health Check               │
+└───────────┬───────────────┘    │                               │
+            │                    │  READ for server setup        │
+            │                    └───────────────┬───────────────┘
+            │                                    │
+            ▼                                    ▼
+┌───────────────────────────┐    ┌───────────────────────────────┐
+│        audit.md           │    │       changelog.md            │
+│  (Investigation Reports)  │    │  (Change History)             │
+│                           │    │                               │
+│  • Bug Investigations     │    │  • All changes documented     │
+│  • Security Audits        │    │  • Date, files, verification  │
+│  • Feature Audits         │    │  • Cross-references to audit  │
+│  • Lessons Learned        │    │  • Cross-refs to README       │
+│  • Cumulative Findings    │    │                               │
+│                           │    │  READ for change history      │
+│  READ for past issues     │    │                               │
+└───────────────────────────┘    └───────────────────────────────┘
+```
+
+### When to Read Which File
+
+| Situation | Read This File | Why |
+|-----------|---------------|-----|
+| Starting ANY task | `rules.md` | Understand protocol, checklist, workflow |
+| Need code architecture | `README.md` | Technical reference, patterns, gotchas |
+| Setting up new server | `AUTODEPLOY.md` | Step-by-step server setup |
+| Debugging a bug | `audit.md` | Check if similar issue was investigated before |
+| Checking change history | `changelog.md` | See what was done and when |
+| Making CSS changes | `rules.md` (CSS Protocol) | Sync rules, !important overrides |
+| Making JS changes | `rules.md` (ESLint Protocol) | Run lint, baseline warnings |
+| Making DB changes | `rules.md` (DB Protocol) | Migration format, type strings |
+| Committing code | `rules.md` (Git Protocol) | Branch naming, commit format |
+| Deploying to production | `AUTODEPLOY.md` | Server config, service setup |
+| Security concern | `rules.md` (Non-Negotiable) + `audit.md` | Rules + past findings |
+
+### Document Responsibilities
+
+| Document | Responsibility | Update When |
+|----------|---------------|-------------|
+| `rules.md` | AI agent behavior rules | Rules change, new protocols, new gotchas |
+| `README.md` | Technical codebase reference | Architecture changes, new features |
+| `AUTODEPLOY.md` | Server setup & recovery | Server config changes, new packages |
+| `audit.md` | Investigation reports | New bugs found, security audits |
+| `changelog.md` | Change history | Every implementation |
 
 ---
 

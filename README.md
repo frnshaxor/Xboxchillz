@@ -960,6 +960,9 @@ npm run lint:report   # Generate JSON report to storage/
 
 ## 15. Quick Reference for AI Agents
 
+> **Also read `rules.md`** for complete protocols (ESLint, CSS, Git, DB, Communication).
+> **Also read `AUTODEPLOY.md`** for server setup and deployment instructions.
+
 ### Common Tasks
 
 | Task | Files to Modify |

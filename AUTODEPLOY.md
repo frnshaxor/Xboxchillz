@@ -537,6 +537,26 @@ mysql -u arsip -p'ArsipDb_2026_xK7' arsip_layar -e "SELECT COUNT(*) FROM videos;
 | `audit.md` | Investigation reports | AUTODEPLOY.md references security findings |
 | `changelog.md` | Change history | AUTODEPLOY.md documents current state |
 | `rules.md` | AI agent guidelines | AUTODEPLOY.md provides deployment instructions |
+
+### How Each File Relates to AUTODEPLOY.md
+
+| File | What It Provides | What AUTODEPLOY.md Provides |
+|------|-----------------|---------------------------|
+| `README.md` | Code architecture, API routes, database schema | Server where code runs |
+| `audit.md` | Bug investigations, security findings | Server configuration to reproduce/fix |
+| `changelog.md` | Change history with dates | Current server state documentation |
+| `rules.md` | AI agent protocols (Git, ESLint, CSS, DB) | Server setup for those protocols to work |
+
+### When to Use AUTODEPLOY.md
+
+| Scenario | Use AUTODEPLOY.md? | Also Read |
+|----------|-------------------|-----------|
+| Setting up new VPS | ✅ **Primary** | `rules.md` (Git Protocol) |
+| Server died, rebuild | ✅ **Primary** | `changelog.md` (what was last deployed) |
+| Adding new server package | ✅ **Yes** | `README.md` (dependencies) |
+| Debugging server issue | ✅ **Yes** | `audit.md` (past issues) |
+| Regular code changes | ❌ No | `rules.md` → `README.md` → `audit.md` |
+| Database migration | ⚠️ Partial | `rules.md` (DB Protocol) + `README.md` (schema) |
 | `deploy.sh` | Deployment script | AUTODEPLOY.md explains what it does |
 
 ---
