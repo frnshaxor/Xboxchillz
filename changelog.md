@@ -30,7 +30,7 @@
 | `user.name` | `Xboxchillz` |
 | `user.email` | `alvin.krisdianto69@gmail.com` |
 | SSH Key | `~/.ssh/id_ed25519` (ed25519) |
-| Remote | `git@github.com:Xboxchillz/Xboxchillz.git` (SSH) |
+| Remote | `git@github.com:frnshaxor/Xboxchillz.git` (SSH) |
 | Default branch | `master` |
 | Branch strategy | Feature branches (fix/, feat/, hotfix/, docs/, refactor/) |
 | Commit format | Bahasa Indonesia (`feat(tambah): deskripsi`) |

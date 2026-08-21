@@ -476,7 +476,7 @@ git push origin --delete <branch>  # Hapus branch remote
 | Push feature | `git push -u origin <branch>` | After commit to feature branch |
 | Pull latest | `git pull origin master` | Before starting work |
 | Fetch all | `git fetch --all` | Check for remote changes |
-| Clone repo | `git clone git@github.com:Xboxchillz/Xboxchillz.git` | First time setup |
+| Clone repo | `git clone git@github.com:frnshaxor/Xboxchillz.git` | First time setup |
 
 ### Conflict Resolution
 
@@ -495,7 +495,7 @@ If merge conflict occurs:
 | `user.name` | `Xboxchillz` |
 | `user.email` | `alvin.krisdianto69@gmail.com` |
 | SSH Key | `~/.ssh/id_ed25519` (ed25519) |
-| Remote | `git@github.com:Xboxchillz/Xboxchillz.git` (SSH) |
+| Remote | `git@github.com:frnshaxor/Xboxchillz.git` (SSH) |
 | Default branch | `master` |
 | Branch strategy | Feature branches (`fix/`, `feat/`, `hotfix/`, `docs/`, `refactor/`) |
 | Commit format | Bahasa Indonesia (`feat(tambah): deskripsi`) |
