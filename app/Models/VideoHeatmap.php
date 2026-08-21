@@ -23,7 +23,8 @@ class VideoHeatmap
              ON DUPLICATE KEY UPDATE view_count=view_count+1'
         );
         foreach ($seconds as $sec) {
-            $stmt->bind_param('isi', $videoId, $viewerHash, (int) $sec);
+            $s = (int) $sec;
+            $stmt->bind_param('isi', $videoId, $viewerHash, $s);
             $stmt->execute();
         }
         $stmt->close();
