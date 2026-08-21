@@ -125,6 +125,42 @@ php -l <modified_file.php>   # Repeat for EVERY modified PHP file
 
 ---
 
+## 🔄 CI/CD Protocol
+
+> GitHub Actions CI pipeline runs on every push to master and pull requests. AI agents MUST understand this protocol.
+
+### Pipeline Jobs
+
+| Job | Command | When to Run |
+|-----|---------|-------------|
+| PHP Syntax | `php -l` on all files | Every push/PR |
+| ESLint | `npm run lint` | Every push/PR |
+| PHPUnit Tests | `vendor/bin/phpunit` | Every push/PR |
+| Final Verification | Aggregates all checks | After all jobs complete |
+
+### CI Workflow
+
+1. **Before push:** Run `php -l`, `npm run lint`, `vendor/bin/phpunit` locally
+2. **After push:** GitHub Actions runs automatically
+3. **If CI fails:** Fix errors before merging to master
+4. **If CI passes:** Safe to merge
+
+### What CI Checks
+
+| Check | Rules.md Reference | Failure Action |
+|-------|-------------------|----------------|
+| PHP syntax errors | 🔒3 Syntax Verification | Fix syntax error |
+| ESLint errors | ESLint Protocol | Fix lint error |
+| PHPUnit test failures | Post-Task Checklist | Fix test or code |
+
+### CI Safety
+
+- **No deploy steps** — CI only verifies, does not deploy to production
+- **Isolated environment** — CI runs on GitHub runners, not on VPS
+- **No secrets exposed** — CI config contains no API keys or passwords
+
+---
+
 ## 🔍 ESLint Protocol
 
 > ESLint is MANDATORY for all frontend JavaScript changes. AI agents MUST follow this protocol.

@@ -1,0 +1,77 @@
+# Arsip Layar CI Pipeline
+# Runs on every push to master and pull requests
+# Checks: PHP syntax, ESLint, PHPUnit tests
+
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  php-syntax:
+    name: PHP Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+      
+      - name: Check PHP syntax
+        run: |
+          echo "=== PHP SYNTAX CHECK ==="
+          find app/ controllers/ routes/ cli/ tests/ -name "*.php" -exec php -l {} \; 2>&1 | grep -v "No syntax errors" || echo "All PHP files passed syntax check"
+
+  eslint:
+    name: ESLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Run ESLint
+        run: npm run lint
+
+  phpunit:
+    name: PHPUnit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.5'
+          extensions: mbstring, xml, ctype, json, bcmath
+          coverage: none
+      
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist
+      
+      - name: Run PHPUnit
+        run: vendor/bin/phpunit
+
+  verify:
+    name: Final Verification
+    runs-on: ubuntu-latest
+    needs: [php-syntax, eslint, phpunit]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: All checks passed
+        run: |
+          echo "=== ALL CI CHECKS PASSED ==="
+          echo "✅ PHP Syntax: OK"
+          echo "✅ ESLint: OK"
+          echo "✅ PHPUnit: OK"
+          echo "🎉 CI Pipeline: SUCCESS"

@@ -1007,7 +1007,35 @@ See [changelog.md](changelog.md) for a detailed history of all changes made to t
 
 ---
 
-## 16. Audit Report
+## 16. CI/CD Pipeline
+
+GitHub Actions CI pipeline runs on every push to master and pull requests.
+
+### Pipeline Jobs
+
+| Job | Command | Rules.md Reference |
+|-----|---------|-------------------|
+| PHP Syntax | `php -l` on all files | 🔒3 Syntax Verification |
+| ESLint | `npm run lint` | ESLint Protocol |
+| PHPUnit Tests | `vendor/bin/phpunit` | Post-Task Checklist |
+| Final Verification | Aggregates all checks | — |
+
+### Commands
+
+```bash
+# Run PHP syntax check
+find app/ controllers/ routes/ cli/ tests/ -name "*.php" -exec php -l {} \;
+
+# Run ESLint
+npm run lint
+
+# Run PHPUnit tests
+vendor/bin/phpunit
+```
+
+---
+
+## 17. Audit Report
 
 See [audit.md](audit.md) for a comprehensive code audit covering security, workflows, and code quality.
 

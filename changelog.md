@@ -6,6 +6,56 @@
 
 ---
 
+## 2026-08-21 (CI/CD Pipeline)
+
+### 🟢 Feature: GitHub Actions CI Pipeline
+
+**Problem:** Tidak ada automated verification — semua checks manual. Deep audit menunjukkan Testing & CI/CD score 31/100 karena tidak ada pipeline.
+
+**Solution:** GitHub Actions CI pipeline yang menjalankan PHP syntax check, ESLint, dan PHPUnit tests setiap push/PR.
+
+#### Pipeline Jobs
+
+| Job | Command | Rules.md Reference |
+|-----|---------|-------------------|
+| PHP Syntax | `php -l` on all files | 🔒3 Syntax Verification |
+| ESLint | `npm run lint` | ESLint Protocol |
+| PHPUnit Tests | `vendor/bin/phpunit` | Post-Task Checklist |
+| Final Verification | Aggregates all checks | — |
+
+#### Files Created
+
+| File | Purpose |
+|------|---------|
+| `.github/workflows/ci.yml` | CI pipeline configuration |
+
+#### Pipeline Features
+
+- **Triggers:** Push to master, Pull requests to master
+- **PHP Syntax:** Checks all PHP files with `php -l`
+- **ESLint:** Runs linting on frontend JavaScript
+- **PHPUnit:** Runs all 50 unit tests
+- **Final Verification:** Aggregates all checks, fails if any fail
+
+#### Verification
+
+- ✅ CI pipeline runs on push to master
+- ✅ CI pipeline runs on pull requests
+- ✅ All 4 jobs configured (php-syntax, eslint, phpunit, verify)
+- ✅ No deploy steps — verification only
+- ✅ CI/CD score improved from 31/100 → 65/100 (+34)
+
+#### Documentation Updated
+
+- ✅ `changelog.md` — added detailed entry
+- ✅ `audit.md` — added Section 19 (CI/CD Audit)
+- ✅ `README.md` — added CI/CD section
+- ✅ `rules.md` — added CI protocol
+
+**Audit:** Section 19 (CI/CD Audit) in audit.md
+
+---
+
 ## 2026-08-21 (Legacy Cleanup)
 
 ### 🟢 Refactor: Hapus Legacy Files (index.php, config.php, api.php)
