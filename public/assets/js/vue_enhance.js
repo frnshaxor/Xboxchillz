@@ -23,8 +23,8 @@
     const opts = { method, credentials: 'same-origin' };
     if (body) opts.body = body;
     const r = await fetch('api.php?op=' + op, opts);
-    let data = null;
-    try { data = await r.json(); } catch (e) { data = null; }
+    let data;
+    try { data = await r.json(); } catch (_) { /* JSON parse failed */ }
     if (!r.ok) {
       const msg = (data && (data.error || data.message)) || (op + ' ' + r.status);
       const err = new Error(msg); err.data = data; err.status = r.status;
@@ -138,16 +138,23 @@
     });
   }
 
-  // ---------- Keyboard shortcuts ----------
+  // ---------- Keyboard shortcuts + Command Palette (Ctrl+K) ----------
   function initKeyboardShortcuts(state) {
-    if (!state.admin) return;
     document.addEventListener('keydown', function (e) {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
       const ctrl = e.ctrlKey || e.metaKey;
+      // Ctrl+K: open command palette
+      if (ctrl && e.key === 'k') {
+        e.preventDefault();
+        openCommandPalette(state);
+        return;
+      }
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
       if (ctrl && e.key === 'u') { e.preventDefault(); location.href = '?page=admin'; }
-      if (ctrl && e.key === 'k') { e.preventDefault(); const s = document.querySelector('.gallery-search-input'); if (s) { s.focus(); s.select(); } }
       if (e.key === '?') { e.preventDefault(); toggleShortcutHelp(); }
-      if (e.key === 'Escape') { const oh = document.getElementById('shortcut-overlay'); if (oh) oh.remove(); }
+      if (e.key === 'Escape') {
+        const oh = document.getElementById('shortcut-overlay'); if (oh) oh.remove();
+        const cp = document.querySelector('.command-overlay'); if (cp) cp.remove();
+      }
     });
   }
   function toggleShortcutHelp() {
@@ -157,8 +164,8 @@
     oh.id = 'shortcut-overlay';
     oh.innerHTML = '<div class="shortcut-card"><button class="shortcut-close" onclick="this.closest(\'#shortcut-overlay\').remove()">&times;</button>' +
       '<h3>Keyboard Shortcuts</h3><dl>' +
+      '<dt><kbd>Ctrl</kbd>+<kbd>K</kbd></dt><dd>Command palette</dd>' +
       '<dt><kbd>Ctrl</kbd>+<kbd>U</kbd></dt><dd>Buka panel admin</dd>' +
-      '<dt><kbd>Ctrl</kbd>+<kbd>K</kbd></dt><dd>Cari video</dd>' +
       '<dt><kbd>?</kbd></dt><dd>Tampilkan shortcut ini</dd>' +
       '<dt><kbd>Esc</kbd></dt><dd>Tutup overlay</dd>' +
       '</dl></div>';
@@ -166,18 +173,142 @@
     oh.addEventListener('click', function (e) { if (e.target === oh) oh.remove(); });
   }
 
-  // ---------- Dark/Light mode auto-detect ----------
-  function initThemeAutoDetect() {
-    const mq = window.matchMedia('(prefers-color-scheme: light)');
-    function applySystemTheme(e) {
-      // Only auto-switch if user hasn't manually selected
-      if (document.documentElement.dataset.themeManual === '1') return;
-      // If system prefers light and current theme is dark, suggest light
-      // Actually, respect the admin's chosen theme — just set data-theme-system
-      document.documentElement.dataset.themeSystem = e.matches ? 'light' : 'dark';
+  // ---------- Dropdown Menu (Shadcn style) ----------
+  function initDropdowns() {
+    document.addEventListener('click', function(e) {
+      // Toggle dropdown on trigger click
+      const trigger = e.target.closest('.dropdown-trigger');
+      if (trigger) {
+        e.preventDefault();
+        const wrap = trigger.closest('.dropdown-wrap');
+        const menu = wrap.querySelector('.dropdown-menu');
+        const isOpen = menu.classList.contains('open');
+        // Close all other dropdowns
+        document.querySelectorAll('.dropdown-menu.open').forEach(function(m) { m.classList.remove('open'); });
+        if (!isOpen) menu.classList.add('open');
+        return;
+      }
+      // Close dropdown on outside click
+      if (!e.target.closest('.dropdown-menu')) {
+        document.querySelectorAll('.dropdown-menu.open').forEach(function(m) { m.classList.remove('open'); });
+      }
+    });
+    // Close on Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.dropdown-menu.open').forEach(function(m) { m.classList.remove('open'); });
+      }
+    });
+  }
+
+  // ---------- Command Palette (Shadcn style) ----------
+  function openCommandPalette(state) {
+    // Close existing
+    const existing = document.querySelector('.command-overlay');
+    if (existing) { existing.remove(); return; }
+
+    // Build command list
+    const commands = [
+      { group: 'Navigasi', icon: 'home', title: 'Beranda', desc: 'Lihat koleksi video', href: '.', kbd: '' },
+      { group: 'Navigasi', icon: 'contact_support', title: 'Kontak', desc: 'Hubungi admin', href: '?page=contact', kbd: '' },
+      { group: 'Navigasi', icon: 'login', title: 'Masuk', desc: 'Login ke panel admin', href: '?page=login', kbd: '' },
+    ];
+    if (state.admin) {
+      commands.push(
+        { group: 'Admin', icon: 'tune', title: 'Panel Admin', desc: 'Buka ruang kendali', href: '?page=admin', kbd: 'Ctrl+U' },
+        { group: 'Admin', icon: 'video_library', title: 'Perpustakaan Video', desc: 'Kelola koleksi video', href: '?page=admin&tab=content', kbd: '' },
+        { group: 'Admin', icon: 'vpn_key', title: 'Token Akses', desc: 'Kelola token pelanggan', href: '?page=admin&tab=tokens', kbd: '' },
+        { group: 'Admin', icon: 'payments', title: 'Pembayaran', desc: 'Midtrans settings & orders', href: '?page=admin&tab=payments', kbd: '' },
+        { group: 'Admin', icon: 'analytics', title: 'Analytics', desc: 'Wawasan & heatmap', href: '?page=admin&tab=analytics', kbd: '' },
+        { group: 'Admin', icon: 'logout', title: 'Keluar', desc: 'Logout dari panel', href: '?page=logout', kbd: '' }
+      );
     }
-    mq.addEventListener('change', applySystemTheme);
-    applySystemTheme(mq);
+
+    // Render
+    const overlay = document.createElement('div');
+    overlay.className = 'command-overlay';
+    overlay.innerHTML = '<div class="command-dialog">' +
+      '<div class="command-input-wrap">' +
+        '<span class="material-symbols-rounded">search</span>' +
+        '<input class="command-input" placeholder="Ketik perintah atau cari..." autocomplete="off" autofocus>' +
+        '<span class="command-kbd">Esc</span>' +
+      '</div>' +
+      '<div class="command-list"></div>' +
+      '<div class="command-footer">' +
+        '<span><kbd>↑↓</kbd> Navigasi</span>' +
+        '<span><kbd>↵</kbd> Buka</span>' +
+        '<span><kbd>Esc</kbd> Tutup</span>' +
+      '</div>' +
+    '</div>';
+    document.body.appendChild(overlay);
+
+    const input = overlay.querySelector('.command-input');
+    const list = overlay.querySelector('.command-list');
+    let activeIdx = 0;
+
+    function render(filter) {
+      filter = (filter || '').toLowerCase();
+      const filtered = commands.filter(function(c) {
+        return !filter || c.title.toLowerCase().includes(filter) || c.desc.toLowerCase().includes(filter) || c.group.toLowerCase().includes(filter);
+      });
+      activeIdx = 0;
+      if (!filtered.length) {
+        list.innerHTML = '<div class="command-empty">Tidak ada perintah ditemukan</div>';
+        return;
+      }
+      let html = '';
+      let lastGroup = '';
+      filtered.forEach(function(c, i) {
+        if (c.group !== lastGroup) {
+          html += '<div class="command-group-label">' + c.group + '</div>';
+          lastGroup = c.group;
+        }
+        html += '<div class="command-item' + (i === 0 ? ' active' : '') + '" data-href="' + c.href + '" data-idx="' + i + '">' +
+          '<span class="material-symbols-rounded">' + c.icon + '</span>' +
+          '<div class="command-item-text"><div class="command-item-title">' + c.title + '</div>' +
+          '<div class="command-item-desc">' + c.desc + '</div></div>' +
+          (c.kbd ? '<span class="command-item-kbd">' + c.kbd + '</span>' : '') +
+        '</div>';
+      });
+      list.innerHTML = html;
+      // Bind clicks
+      list.querySelectorAll('.command-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+          overlay.remove();
+          location.href = item.dataset.href;
+        });
+      });
+    }
+
+    render('');
+    input.focus();
+
+    input.addEventListener('input', function() { render(input.value); });
+
+    input.addEventListener('keydown', function(e) {
+      const items = list.querySelectorAll('.command-item');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        activeIdx = Math.min(activeIdx + 1, items.length - 1);
+        items.forEach(function(it, i) { it.classList.toggle('active', i === activeIdx); });
+        items[activeIdx] && items[activeIdx].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        activeIdx = Math.max(activeIdx - 1, 0);
+        items.forEach(function(it, i) { it.classList.toggle('active', i === activeIdx); });
+        items[activeIdx] && items[activeIdx].scrollIntoView({ block: 'nearest' });
+      } else if (e.key === 'Enter') {
+        e.preventDefault();
+        const active = list.querySelector('.command-item.active');
+        if (active) { overlay.remove(); location.href = active.dataset.href; }
+      } else if (e.key === 'Escape') {
+        overlay.remove();
+      }
+    });
+
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) overlay.remove();
+    });
   }
 
   // ---------- Boot Vue enhancements ----------
@@ -185,23 +316,21 @@
     // Core navigation and access UI must not depend on third-party CDN scripts.
     initTabs();
     initBurger();
+    // Show logout toast if redirected from revoke-access
+    if (new URLSearchParams(window.location.search).get('logged_out') === '1') {
+      showToast('Logout berhasil', 'success');
+      window.history.replaceState({}, '', window.location.pathname);
+    }
     initUploadProgress();
     initTokenModal();
     initPreviewPlayer();
     initPlyr();
     initGallerySearch();
     initFormProtection();
-    initThemeAutoDetect();
+    initDropdowns();
     initDownloadLoading();
 
-    const state = await api('state').catch(() => ({ csrf: '', theme: 'obsidian', site: 'Arsip Layar', admin: false }));
-    document.documentElement.dataset.theme = state.theme || 'obsidian';
-
-    // System theme fallback: if no admin theme set and user prefers light
-    if (!state.admin && state.theme === 'obsidian') {
-      const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
-      if (prefersLight) document.documentElement.dataset.theme = 'ivory';
-    }
+    const state = await api('state').catch(() => ({ csrf: '', site: 'Arsip Layar', admin: false }));
 
     try {
       await fetch('api.php?op=event', {
@@ -211,7 +340,7 @@
           browser: navigator.userAgent.slice(0, 80)
         })
       });
-    } catch (e) {}
+    } catch (_) { /* analytics fire-and-forget */ }
 
     initRetentionTracker(state.csrf);
     initMidtransPurchase(state.csrf);
@@ -221,7 +350,6 @@
     if (!window.Vue) return;
 
     const showInsightFloater = state.admin && !location.search.includes('page=admin') && !location.search.includes('page=login');
-    if (state.admin) mountThemeSwitcher(state);
     if (showInsightFloater) mountInsightFloater(state);
 
     if (location.search.includes('page=admin')) {
@@ -231,6 +359,7 @@
       mountWatermark(state);
       mountTelegram(state);
       initTokenManager();
+      initVideoLibrary();
     }
   }
 
@@ -465,7 +594,7 @@
       controls: ['play-large', 'restart', 'rewind', 'play', 'fast-forward', 'progress', 'current-time', 'duration', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
       settings: ['captions', 'quality', 'speed', 'loop'],
       quality: { default: 0, options: qualityOptions },
-      iconUrl: 'plyr.svg',
+      iconUrl: '/assets/plyr.svg',
       blankVideo: 'https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/blank.mp4',
       speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] },
       keyboard: { focused: true, global: true },
@@ -532,43 +661,453 @@
     wrap.appendChild(overlay);
   }
 
+  // ---------- Bulk Chunked Upload (up to 4 files, resumable) ----------
   function initUploadProgress() {
     const form = document.getElementById('upload-form'); if (!form) return;
-    const bar = document.getElementById('upload-progress');
-    const fill = bar.querySelector('.up-fill');
-    const pct = bar.querySelector('.up-pct');
-    const bytes = bar.querySelector('.up-bytes');
-    const submit = form.querySelector('button[type=submit]');
+    const queueEl = document.getElementById('upload-queue');
+    const fileInput = document.getElementById('upload-file-input');
+    const submitBtn = document.getElementById('upload-submit-btn');
+    const csrfInput = form.querySelector('input[name=csrf]');
+    if (!queueEl || !fileInput || !submitBtn || !csrfInput) return;
 
-    form.addEventListener('submit', (e) => {
-      const fileEl = form.querySelector('input[type=file]');
-      const file = fileEl && fileEl.files && fileEl.files[0];
-      if (!file) return;
-      e.preventDefault();
-      bar.classList.remove('hidden');
-      submit.disabled = true;
-      submit.textContent = 'Mengunggah…';
+    const MAX_FILES = 4;
+    const MAX_SIZE_MB = parseInt(form.closest('[data-upload-mb]')?.dataset?.uploadMb || '2048', 10);
+    const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB — must match server
+    const STORAGE_KEY = 'arsip_upload_queue';
 
-      const xhr = new XMLHttpRequest();
-      xhr.open('POST', form.action, true);
-      xhr.upload.onprogress = (ev) => {
-        if (!ev.lengthComputable) return;
-        const p = (ev.loaded / ev.total) * 100;
-        fill.style.width = p.toFixed(1) + '%';
-        pct.textContent = p.toFixed(1) + '%';
-        bytes.textContent = (ev.loaded / 1048576).toFixed(1) + ' / ' + (ev.total / 1048576).toFixed(1) + ' MB';
-      };
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 400) {
-          submit.textContent = 'Selesai · memproses HLS';
-          setTimeout(() => location.href = '?page=admin&uploaded=1', 800);
-        } else {
-          submit.disabled = false; submit.textContent = 'Unggah ulang'; alert('Upload gagal: ' + xhr.status);
+    let uploadQueue = []; // [{file, uploadId, status, progress, chunks, totalChunks, name, size}]
+    let isUploading = false;
+    let aborting = false; // FIX #4: prevent processQueue() during abort
+
+    // --- Persist/restore from localStorage ---
+    function saveQueueState() {
+      const state = uploadQueue.map(function (item) {
+        return {
+          uploadId: item.uploadId, name: item.name, size: item.size,
+          status: item.status, progress: item.progress,
+          uploadedBytes: item.uploadedBytes || 0,
+          chunks: item.chunks, totalChunks: item.totalChunks,
+          errorAt: item.errorAt || 0, retryCount: item.retryCount || 0
+        };
+      });
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) { /* quota */ }
+    }
+    function restoreQueueState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return [];
+        const state = JSON.parse(raw);
+        const now = Date.now();
+        const STALE_MS = 30 * 60 * 1000; // FIX #2: 30 min — stale error items auto-cleared
+        return state.filter(function (s) {
+          if (s.status === 'done' || s.status === 'aborted') return false;
+          // FIX #2: error items older than 30 min are considered stale
+          if (s.status === 'error' && s.errorAt && (now - s.errorAt) > STALE_MS) return false;
+          return true;
+        })
+          .map(function (s) {
+            return Object.assign(s, {
+              file: null, // FIX #1: File object cannot be serialized to localStorage
+              needsFile: true, // FIX #1: Flag that file must be re-selected
+              progress: s.progress || 0,
+              uploadedBytes: s.uploadedBytes || 0,
+              retryCount: s.retryCount || 0
+            });
+          });
+      } catch (_) { return []; }
+    }
+    function clearQueueState() {
+      try { localStorage.removeItem(STORAGE_KEY); } catch (_) { /* ignore */ }
+    }
+
+    // --- Render queue UI ---
+    function renderQueue() {
+      if (!uploadQueue.length) { queueEl.classList.add('hidden'); queueEl.innerHTML = ''; return; }
+      queueEl.classList.remove('hidden');        let html = '<div class="upload-queue-header"><span class="material-symbols-rounded">queue</span> Antrian upload (' + uploadQueue.length + '/' + MAX_FILES + ')</div>';
+        uploadQueue.forEach(function (item, idx) {
+          const pct = item.progress || 0;
+          const uploaded = item.uploadedBytes || 0;
+          const sizeStr = formatBytes(item.size);
+          let statusIcon = 'pending';
+          let statusClass = '';
+          let statusLabel = 'Menunggu…';
+          // FIX #1: Show 'needs file' state for restored items with null file
+          if (item.needsFile && !item.file) {
+            statusIcon = 'warning'; statusClass = 'uq-needs-file'; statusLabel = '⚠ Pilih ulang file';
+          }
+          else if (item.status === 'uploading') { statusIcon = 'progress_activity'; statusClass = 'spin'; statusLabel = 'Uploading'; }
+          else if (item.status === 'processing') { statusIcon = 'settings'; statusClass = 'spin'; statusLabel = 'Memproses…'; }
+          else if (item.status === 'done') { statusIcon = 'check_circle'; statusClass = 'uq-done'; statusLabel = 'Selesai'; }
+          else if (item.status === 'error') { statusIcon = 'error'; statusClass = 'uq-error'; statusLabel = item.error || 'Gagal'; }
+          else if (item.status === 'aborted') { statusIcon = 'cancel'; statusClass = 'uq-abort'; statusLabel = 'Dibatalkan'; }
+
+          const showProgress = item.status === 'uploading' || item.status === 'processing';
+          const isUploading = item.status === 'uploading';
+
+          html += '<div class="upload-queue-item ' + (item.status || '') + '" data-idx="' + idx + '">' +
+          '<div class="uq-info">' +
+          '<span class="material-symbols-rounded ' + statusClass + '">' + statusIcon + '</span>' +
+          '<div class="uq-details">' +
+          '<span class="uq-name" title="' + escapeAttr(item.name) + '">' + escapeHtml(item.name) + '</span>' +
+          '<span class="uq-meta">' + sizeStr + ' &middot; ' + statusLabel + '</span>' +
+          '</div>' +
+          (isUploading || item.status === 'processing' ? '<button class="uq-cancel ghost small" data-idx="' + idx + '" title="Batalkan"><span class="material-symbols-rounded">close</span></button>' : '') +
+          (item.status === 'error' ? '<button class="uq-retry ghost small" data-idx="' + idx + '" title="Coba lagi"><span class="material-symbols-rounded">refresh</span></button>' : '') +
+          '</div>' +
+          (showProgress ? '<div class="uq-progress">' +
+          '<div class="uq-track"><div class="uq-fill" style="width:' + (isUploading ? pct.toFixed(1) : (item.status === 'processing' ? '100' : '0')) + '%"></div></div>' +
+          '<div class="uq-progress-info">' +
+          '<span class="uq-pct">' + (isUploading ? pct.toFixed(1) + '%' : (item.status === 'processing' ? '100%' : '0%')) + '</span>' +
+          '<span class="uq-bytes">' + (isUploading ? formatBytes(uploaded) + ' / ' + sizeStr : (item.status === 'processing' ? sizeStr : '')) + '</span>' +
+          '</div></div>' : '') +
+          '</div>';
+      });
+      queueEl.innerHTML = html;
+
+      // Bind cancel buttons
+      queueEl.querySelectorAll('.uq-cancel').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          const idx = parseInt(btn.dataset.idx, 10);
+          abortUpload(idx);
+        });
+      });
+      // Bind retry buttons
+      queueEl.querySelectorAll('.uq-retry').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          const idx = parseInt(btn.dataset.idx, 10);
+          retryUpload(idx);
+        });
+      });
+    }
+
+    function formatBytes(b) {
+      if (b < 1024) return b + ' B';
+      if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+      return (b / 1048576).toFixed(1) + ' MB';
+    }
+    function escapeHtml(s) {
+      const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+    }
+    function escapeAttr(s) {
+      return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+
+    // --- API helper for chunk uploads ---
+    function apiPost(op, body) {
+      return fetch('api.php?op=' + op, {
+        method: 'POST', credentials: 'same-origin', body: body
+      }).then(function (r) { return r.json(); });
+    }
+    function apiGet(op) {
+      return fetch('api.php?op=' + op, { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); });
+    }
+
+    // --- Initialize upload for a file ---
+    function initFileUpload(item) {
+      const fd2 = new FormData();
+      fd2.append('csrf', csrfInput.value);
+      fd2.append('filename', item.name);
+      fd2.append('total_size', String(item.size));
+      return apiPost('upload_init', fd2).then(function (res) {
+        if (res.error) throw new Error(res.error);
+        item.uploadId = res.upload_id;
+        item.totalChunks = Math.ceil(item.size / (res.chunk_size || CHUNK_SIZE));
+        item.chunks = [];
+        item.status = 'uploading';
+        item.progress = 0;
+        saveQueueState();
+        renderQueue();
+        return item;
+      });
+    }
+
+    // --- Check server for existing chunks (resume) ---
+    function checkResume(item) {
+      if (!item.uploadId) return Promise.resolve(item);
+      return apiGet('upload_status&upload_id=' + encodeURIComponent(item.uploadId))
+        .then(function (res) {
+          if (res.ok && res.uploaded_chunks) {
+            item.chunks = res.uploaded_chunks;
+            item.totalChunks = res.total_chunks || item.totalChunks;
+            const pct = item.totalChunks > 0 ? (item.chunks.length / item.totalChunks) * 100 : 0;
+            item.progress = pct;
+            saveQueueState();
+            renderQueue();
+          }
+          return item;
+        })
+        .catch(function () { return item; });
+    }
+
+    // --- Upload a single chunk via XHR ---
+    function uploadChunkXhr(item, chunkIdx) {
+      return new Promise(function (resolve, reject) {
+        const start = chunkIdx * CHUNK_SIZE;
+        const end = Math.min(start + CHUNK_SIZE, item.size);
+        const chunkBlob = item.file ? item.file.slice(start, end) : null;
+        // FIX #1: Clearer error message — file object lost after page reload
+        if (!chunkBlob) { reject(new Error('File tidak tersedia — muat ulang halaman dan pilih file lagi.')); return; }
+
+        const fd2 = new FormData();
+        fd2.append('csrf', csrfInput.value);
+        fd2.append('upload_id', item.uploadId);
+        fd2.append('chunk_number', String(chunkIdx));
+        fd2.append('chunk', chunkBlob, 'chunk');
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', 'api.php?op=upload_chunk', true);
+        xhr.upload.onprogress = function (ev) {
+          if (!ev.lengthComputable) return;
+          const chunkPct = ev.loaded / ev.total;
+          const basePct = (chunkIdx / item.totalChunks) * 100;
+          const chunkWeight = (1 / item.totalChunks) * 100;
+          item.progress = basePct + chunkPct * chunkWeight;
+          const chunkBytesUploaded = ev.loaded;
+          const prevChunksBytes = chunkIdx * CHUNK_SIZE;
+          item.uploadedBytes = Math.min(prevChunksBytes + chunkBytesUploaded, item.size);
+          renderQueue();
+        };
+        xhr.onload = function () {
+          try {
+            const res = JSON.parse(xhr.responseText);
+            if (res.ok) {
+              item.chunks = res.uploaded_chunks || item.chunks;
+              item.progress = ((chunkIdx + 1) / item.totalChunks) * 100;
+              item.uploadedBytes = Math.min((chunkIdx + 1) * CHUNK_SIZE, item.size);
+              saveQueueState();
+              renderQueue();
+              resolve(res);
+            } else {
+              reject(new Error(res.error || 'Chunk upload failed'));
+            }
+          } catch (_) {
+            reject(new Error('Respons tidak valid'));
+          }
+        };
+        xhr.onerror = function () { reject(new Error('Koneksi terputus')); };
+        xhr.ontimeout = function () { reject(new Error('Timeout')); };
+        xhr.timeout = 300000; // 5 min per chunk
+        xhr.send(fd2);
+      });
+    }
+
+    // --- Upload all chunks for a file ---
+    function uploadAllChunks(item) {
+      // FIX #1: Guard — file must exist before attempting chunk upload
+      if (!item.file) return Promise.reject(new Error('File tidak tersedia — muat ulang halaman dan pilih file lagi.'));
+      let startChunk = 0;
+      if (item.chunks && item.chunks.length) {
+        startChunk = Math.max.apply(null, item.chunks) + 1;
+      }
+      let chain = Promise.resolve();
+      for (let c = startChunk; c < item.totalChunks; c++) {
+        (function (chunkIdx) {
+          chain = chain.then(function () {
+            if (item.status === 'aborted') return Promise.reject(new Error('aborted'));
+            return uploadChunkXhr(item, chunkIdx);
+          });
+        })(c);
+      }
+      return chain;
+    }
+
+    // --- Finalize upload ---
+    function finalizeUpload(item) {
+      item.status = 'processing';
+      item.progress = 100;
+      renderQueue();
+
+      const catEl = form.querySelector('select[name=category_id]');
+      const titleEl = form.querySelector('input[name=title]');
+      const fd2 = new FormData();
+      fd2.append('csrf', csrfInput.value);
+      fd2.append('upload_id', item.uploadId);
+      fd2.append('category_id', catEl ? catEl.value : '0');
+      fd2.append('title', titleEl ? titleEl.value : '');
+      return apiPost('upload_complete', fd2).then(function (res) {
+        if (res.error) throw new Error(res.error);
+        item.status = 'done';
+        item.progress = 100;
+        saveQueueState();
+        renderQueue();
+        showToast(item.name + ' — upload selesai, transcode berjalan.', 'success');
+        return res;
+      });
+    }
+
+    // --- Process queue (sequential) ---
+    function processQueue() {
+      if (isUploading || aborting) return; // FIX #4: guard against abort race
+
+      // FIX #2: If all items are error/null-file, clear queue and stop
+      const hasUploadable = uploadQueue.some(function (q) {
+        return (q.status === 'pending' || q.status === 'queued' || q.status === 'uploading') && q.file;
+      });
+      if (!hasUploadable && uploadQueue.every(function (q) { return q.status === 'error' || !q.file; })) {
+        clearQueueState();
+        uploadQueue = [];
+        isUploading = false;
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span class="material-symbols-rounded">upload</span> Mulai unggah & transcode';
+        renderQueue();
+        return;
+      }
+
+      let next = null;
+      for (let i = 0; i < uploadQueue.length; i++) {
+        if (uploadQueue[i].status === 'pending' || uploadQueue[i].status === 'queued') {
+          next = uploadQueue[i]; break;
         }
-      };
-      xhr.onerror = () => { submit.disabled = false; submit.textContent = 'Coba lagi'; alert('Koneksi terputus.'); };
-      xhr.send(new FormData(form));
+      }
+      if (!next) {
+        // All done or error — check if any completed
+        const hasDone = uploadQueue.some(function (q) { return q.status === 'done'; });
+        isUploading = false;
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<span class="material-symbols-rounded">upload</span> Mulai unggah & transcode';
+        if (hasDone) {
+          clearQueueState();
+          setTimeout(function () { location.href = '?page=admin&uploaded=1'; }, 1200);
+        }
+        return;
+      }
+      isUploading = true;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="material-symbols-rounded spin">progress_activity</span> Mengunggah…';
+
+      const chain = Promise.resolve(next)
+        .then(function (item) {
+          // FIX #1: Guard — file must exist before attempting upload
+          if (!item.file) throw new Error('File tidak tersedia — muat ulang halaman dan pilih file lagi.');
+          if (!item.uploadId) return initFileUpload(item);
+          return item;
+        })
+        .then(function (item) { return checkResume(item); })
+        .then(function (item) { return uploadAllChunks(item); })
+        .then(function () { return finalizeUpload(next); })
+        .then(function () {
+          isUploading = false;
+          processQueue();
+        })
+        .catch(function (err) {
+          if (err && err.message === 'aborted') {
+            isUploading = false;
+            processQueue();
+            return;
+          }
+          next.status = 'error';
+          next.error = err ? err.message : 'Gagal';
+          next.errorAt = Date.now(); // FIX #2: Timestamp for stale error detection
+          saveQueueState();
+          renderQueue();
+          isUploading = false;
+          processQueue();
+        });
+    }
+
+    // --- Abort a single upload ---
+    function abortUpload(idx) {
+      const item = uploadQueue[idx];
+      if (!item) return;
+      item.status = 'aborted';
+      renderQueue();
+      if (item.uploadId) {
+        // FIX #4: Await server response before continuing to next file
+        aborting = true;
+        const fd2 = new FormData();
+        fd2.append('csrf', csrfInput.value);
+        fd2.append('upload_id', item.uploadId);
+        apiPost('upload_abort', fd2)
+          .catch(function () { /* ignore abort errors */ })
+          .then(function () {
+            aborting = false;
+            if (isUploading) {
+              isUploading = false;
+              processQueue();
+            }
+          });
+      } else {
+        if (isUploading) {
+          isUploading = false;
+          processQueue();
+        }
+      }
+    }
+
+    // --- Retry a failed upload ---
+    function retryUpload(idx) {
+      const item = uploadQueue[idx];
+      if (!item) return;
+
+      // FIX #1: If file object is lost (page reload), cannot retry
+      if (!item.file) {
+        showToast(item.name + ' — file tidak tersedia. Pilih ulang file untuk melanjutkan.', 'warning');
+        uploadQueue.splice(idx, 1);
+        saveQueueState();
+        renderQueue();
+        return;
+      }
+
+      // FIX #3: Limit retries to prevent infinite loops
+      const MAX_RETRY = 3;
+      if ((item.retryCount || 0) >= MAX_RETRY) {
+        showToast(item.name + ' — terlalu banyak percobaan gagal. Hapus dan pilih ulang file.', 'error');
+        uploadQueue.splice(idx, 1);
+        saveQueueState();
+        renderQueue();
+        return;
+      }
+
+      item.retryCount = (item.retryCount || 0) + 1;
+      item.status = 'pending';
+      item.error = '';
+      item.progress = 0;
+      item.chunks = []; // Reset chunks so resume check runs
+      saveQueueState();
+      renderQueue();
+      processQueue();
+    }
+
+    // --- Form submit handler ---
+    form.addEventListener('submit', function (e) {
+      const files = fileInput.files;
+      if (!files || !files.length) return;
+      e.preventDefault();
+
+      if (uploadQueue.length + files.length > MAX_FILES) {
+        showToast('Maksimal ' + MAX_FILES + ' file sekaligus.', 'warning');
+        return;
+      }
+
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        if (f.size > MAX_SIZE_MB * 1048576) {
+          showToast(f.name + ' melebihi batas ' + MAX_SIZE_MB + ' MB.', 'error');
+          continue;
+        }
+        uploadQueue.push({
+          file: f, uploadId: null, status: 'pending',
+          progress: 0, chunks: [], totalChunks: Math.ceil(f.size / CHUNK_SIZE),
+          name: f.name, size: f.size,
+          retryCount: 0 // FIX #3: Track retry count per file
+        });
+      }
+      fileInput.value = '';
+      saveQueueState();
+      renderQueue();
+      processQueue();
     });
+
+    // --- Restore queue from localStorage on page load ---
+    const restored = restoreQueueState();
+    if (restored.length) {
+      uploadQueue = restored;
+      renderQueue();
+      processQueue();
+    }
   }
 
   function mountWatermark(state) {
@@ -616,44 +1155,6 @@
     }).mount(el);
   }
 
-  function mountThemeSwitcher(state) {
-    const root = document.createElement('div');
-    document.body.appendChild(root);
-    const { createApp, ref } = Vue;
-    createApp({
-      setup() {
-        const theme = ref(state.theme);
-        const csrf = ref(state.csrf);
-        const panel = ref(false);
-        const saving = ref(false);
-        const labels = { ivory: 'Ivory Dispatch', obsidian: 'Obsidian Atelier', emerald: 'Emerald Cinema', prestige: 'Prestige Noir' };
-        async function choose(t) {
-          saving.value = true;
-          try {
-            const r = await api('theme', 'POST', fd({ csrf: csrf.value, theme: t }));
-            if (r.ok) {
-              theme.value = t;
-              document.documentElement.dataset.theme = t;
-              document.documentElement.dataset.themeManual = '1';
-            }
-          } finally { saving.value = false; }
-        }
-        return { theme, labels, panel, saving, choose };
-      },
-      template: `
-        <div class="vue-atelier">
-          <button class="atelier-trigger" @click="panel=!panel" data-testid="theme-switcher-button" aria-label="Pilih tema">Tema</button>
-          <div v-if="panel" class="atelier-popover" data-testid="theme-switcher-panel">
-            <div class="head">Direction · Theme</div>
-            <button v-for="(label,key) in labels" :key="key" @click="choose(key)"
-                    :class="{selected:theme===key}" :data-testid="'theme-option-'+key">
-              <span class="dot" :class="key"></span>{{label}}
-            </button>
-            <small class="muted" v-if="saving">Menyimpan…</small>
-          </div>
-        </div>`
-    }).mount(root);
-  }
 
   function mountInsightFloater(state) {
     const root = document.createElement('div'); document.body.appendChild(root);
@@ -661,7 +1162,7 @@
     createApp({
       setup() {
         const d = ref(null);
-        onMounted(async () => { try { d.value = await api('insights&days=30'); } catch (e) {} });
+        onMounted(async () => { try { d.value = await api('insights&days=30'); } catch (_) { /* silent */ } });
         return { d };
       },
       template: `
@@ -690,7 +1191,7 @@
             const r = await api('heatmap_data&video_id=' + vid);
             videoHeatmap.data = r.heatmap || [];
             videoHeatmap.duration = r.duration || 0;
-          } catch (e) {} finally { videoHeatmap.loading = false; }
+          } catch (_) { /* silent */ } finally { videoHeatmap.loading = false; }
         }
         onMounted(load);
         const days_list = [7, 30, 90];
@@ -1195,7 +1696,7 @@
         function copyToken(tokenStr) {
           navigator.clipboard.writeText(tokenStr)
             .then(() => { showToast('Token disalin ke clipboard', 'success'); })
-            .catch(() => { prompt('Salin token ini:', tokenStr); });
+            .catch(() => { showToast('Token: ' + tokenStr, 'info', 8000); });
         }
 
         function fmtDate(d) {
@@ -1342,6 +1843,264 @@
             Status <b>Suspend</b> akan mencegah login baru dengan token tersebut secara langsung.
             Dibuat: {{ tokens.length }} token terdaftar.
           </p>
+        </div>
+      `,
+    }).mount(el);
+  }
+
+  // ─────────────────────────────────────────────────────────
+  // initVideoLibrary — Vue 3 component: grid 8×8, search, pagination, edit modal
+  // ─────────────────────────────────────────────────────────
+  function initVideoLibrary() {
+    const el = document.getElementById('library-mount');
+    if (!el || !window.Vue) return;
+
+    const { createApp, ref, reactive, computed, watch, onMounted, onUnmounted } = Vue;
+
+    createApp({
+      setup() {
+        const videos     = ref([]);
+        const categories = ref([]);
+        const loading    = ref(false);
+        const globalErr  = ref('');
+        const search     = ref('');
+        const page       = ref(1);
+        const totalPages = ref(1);
+        const totalItems = ref(0);
+        const perPage    = 64;
+        const csrfToken  = ref('');
+
+        // Edit modal
+        const editing    = ref(null);
+        const editForm   = reactive({ id: 0, title: '', category_id: 0 });
+        const saving     = ref(false);
+
+        let debounceTimer = null;
+
+        async function loadVideos() {
+          loading.value = true; globalErr.value = '';
+          try {
+            const params = new URLSearchParams({ page: page.value, per_page: perPage });
+            if (search.value.trim()) params.set('search', search.value.trim());
+            const d = await api('video_library&' + params.toString());
+            videos.value     = d.videos || [];
+            totalItems.value = d.total || 0;
+            totalPages.value = d.pages || 1;
+            page.value       = d.page || 1;
+          } catch (e) { globalErr.value = e.message; }
+          finally { loading.value = false; }
+        }
+
+        async function loadCategories() {
+          try {
+            const d = await api('categories_list');
+            categories.value = d.categories || [];
+          } catch (e) { /* ignore */ }
+        }
+
+        function onSearch() {
+          clearTimeout(debounceTimer);
+          debounceTimer = setTimeout(() => {
+            page.value = 1;
+            loadVideos();
+          }, 350);
+        }
+
+        function goToPage(p) {
+          if (p < 1 || p > totalPages.value) return;
+          page.value = p;
+          loadVideos();
+        }
+
+        function startEdit(vid) {
+          editForm.id          = vid.id;
+          editForm.title       = vid.title;
+          editForm.category_id = vid.category_id || 0;
+          editing.value        = vid;
+        }
+
+        async function saveEdit() {
+          if (!editForm.title.trim()) return;
+          saving.value = true; globalErr.value = '';
+          try {
+            const state = await api('state');
+            const body  = fd({
+              csrf: state.csrf,
+              id: editForm.id,
+              title: editForm.title.trim(),
+              category_id: editForm.category_id,
+            });
+            await api('video_update', 'POST', body);
+            // Update local state
+            const vid = videos.value.find(v => v.id === editForm.id);
+            if (vid) {
+              vid.title       = editForm.title.trim();
+              vid.category_id = editForm.category_id;
+              const cat = categories.value.find(c => c.id === editForm.category_id);
+              vid.category = cat ? cat.name : '—';
+            }
+            editing.value = null;
+            showToast('Video berhasil diperbarui', 'success');
+          } catch (e) { globalErr.value = e.message; }
+          finally { saving.value = false; }
+        }
+
+        function fmtSize(bytes) {
+          return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        function fmtDate(d) {
+          if (!d) return '—';
+          return new Date(d).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        // Visible page numbers (max 7 buttons)
+        const visiblePages = computed(() => {
+          const tp = totalPages.value;
+          const cp = page.value;
+          let start = Math.max(1, cp - 3);
+          const end   = Math.min(tp, start + 6);
+          start = Math.max(1, end - 6);
+          const pages = [];
+          for (let i = start; i <= end; i++) pages.push(i);
+          return pages;
+        });
+
+        onMounted(async () => {
+          try { const s = await api('state'); csrfToken.value = s.csrf; } catch (e) { /* ignore */ }
+          loadVideos(); loadCategories();
+        });
+        onUnmounted(() => clearTimeout(debounceTimer));
+
+        return {
+          videos, categories, loading, globalErr, search, page, totalPages, totalItems,
+          csrfToken, editing, editForm, saving, visiblePages,
+          onSearch, goToPage, startEdit, saveEdit, fmtSize, fmtDate,
+        };
+      },
+
+      template: `
+        <div>
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;gap:12px;flex-wrap:wrap">
+            <h3 style="margin:0"><span class="material-symbols-rounded">video_library</span> Perpustakaan Video</h3>
+            <span class="muted" style="font-size:13px">{{ totalItems }} video · Halaman {{ page }} / {{ totalPages }}</span>
+          </div>
+
+          <p v-if="globalErr" class="notice err" style="margin-bottom:16px">⚠️ {{ globalErr }}</p>
+
+          <!-- Search bar -->
+          <div style="margin-bottom:20px;position:relative">
+            <span class="material-symbols-rounded" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--fg-muted,#888);pointer-events:none">search</span>
+            <input v-model="search" @input="onSearch"
+              placeholder="Cari berdasarkan judul atau kategori…"
+              style="width:100%;padding:12px 16px 12px 44px;border-radius:12px;border:1px solid var(--border,#333);background:var(--surface,#16181a);color:var(--fg,#e8dfcf);font-size:15px;outline:none;box-sizing:border-box"
+              data-testid="library-search">
+          </div>
+
+          <!-- Loading -->
+          <div v-if="loading" style="text-align:center;padding:48px 0">
+            <span class="material-symbols-rounded" style="font-size:32px;opacity:.3">hourglass_empty</span>
+            <p class="muted">Memuat video…</p>
+          </div>
+
+          <!-- Empty state -->
+          <div v-else-if="videos.length===0" style="text-align:center;padding:48px 0">
+            <span class="material-symbols-rounded" style="font-size:48px;opacity:.2">videocam_off</span>
+            <p class="muted" style="margin-top:8px">{{ search ? 'Tidak ditemukan video yang cocok.' : 'Belum ada video. Unggah di tab Konten.' }}</p>
+          </div>
+
+          <!-- Grid 8 columns -->
+          <div v-else style="display:grid;grid-template-columns:repeat(8,1fr);gap:12px">
+            <div v-for="vid in videos" :key="vid.id" class="library-card"
+              style="background:var(--surface,#16181a);border:1px solid var(--border,#333);border-radius:10px;overflow:hidden;cursor:pointer;transition:border-color .15s,box-shadow .15s;display:flex;flex-direction:column"
+              @mouseenter="$event.currentTarget.style.borderColor='var(--accent,#d96b45)';$event.currentTarget.style.boxShadow='0 0 0 1px var(--accent,#d96b45)'"
+              @mouseleave="$event.currentTarget.style.borderColor='var(--border,#333)';$event.currentTarget.style.boxShadow='none'">
+
+              <!-- Thumbnail -->
+              <a :href="'?page=watch&id=' + vid.id" style="display:block;aspect-ratio:16/9;background:var(--surface2,#1a1c1f);position:relative;overflow:hidden">
+                <img v-if="vid.poster_url" :src="vid.poster_url" :alt="vid.title"
+                  style="width:100%;height:100%;object-fit:cover;display:block" loading="lazy">
+                <div v-else style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px;font-weight:600;color:var(--fg-muted,#555);opacity:.4">
+                  {{ String(vid.id).padStart(2,'0') }}
+                </div>
+                <span style="position:absolute;bottom:4px;right:4px;background:rgba(0,0,0,.7);color:#fff;font-size:10px;padding:2px 6px;border-radius:4px;backdrop-filter:blur(4px)">
+                  {{ Math.floor(vid.duration_sec/60) }}:{{ String(vid.duration_sec%60).padStart(2,'0') }}
+                </span>
+              </a>
+
+              <!-- Info -->
+              <div style="padding:8px 10px;flex:1;min-height:0;display:flex;flex-direction:column;gap:4px">
+                <a :href="'?page=watch&id=' + vid.id" :title="vid.title"
+                  style="color:var(--fg,#e8dfcf);font-size:12px;font-weight:500;line-height:1.3;text-decoration:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word">
+                  {{ vid.title }}
+                </a>
+                <span style="font-size:11px;color:var(--fg-muted,#888)">{{ vid.category || '—' }}</span>
+              </div>
+
+              <!-- Actions -->
+              <div style="padding:0 10px 8px;display:flex;gap:4px;justify-content:flex-end">
+                <button class="ghost small" @click="startEdit(vid)" title="Edit metadata" style="font-size:12px;padding:3px 8px">
+                  ✏️ Edit
+                </button>
+                <form method="post" action="?page=delete-video" @submit.prevent="if(confirm('Hapus video ini beserta file?')) $event.target.submit();"
+                  style="margin:0;display:inline">
+                  <input type="hidden" name="csrf" :value="csrfToken">
+                  <input type="hidden" name="id" :value="vid.id">
+                  <button class="ghost small" title="Hapus" style="font-size:12px;padding:3px 8px;color:#e05252">🗑</button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pagination -->
+          <div v-if="totalPages > 1" style="display:flex;align-items:center;justify-content:center;gap:6px;margin-top:24px;flex-wrap:wrap">
+            <button class="ghost small" @click="goToPage(page-1)" :disabled="page<=1" style="padding:6px 12px">← Prev</button>
+            <button v-for="p in visiblePages" :key="p"
+              :class="['ghost small', p===page ? 'active' : '']"
+              @click="goToPage(p)"
+              style="min-width:36px;padding:6px 10px;text-align:center">
+              {{ p }}
+            </button>
+            <button class="ghost small" @click="goToPage(page+1)" :disabled="page>=totalPages" style="padding:6px 12px">Next →</button>
+          </div>
+
+          <!-- Edit modal -->
+          <div v-if="editing" class="token-modal-overlay active" @click.self="editing=null">
+            <div class="token-modal-card" style="max-width:520px">
+              <button class="token-modal-close" type="button" @click="editing=null">&times;</button>
+              <div class="token-modal-icon"><span class="material-symbols-rounded">edit</span></div>
+              <h2>Edit Video</h2>
+
+              <label style="margin-top:16px;display:block;text-align:left">
+                <span style="font-size:13px;color:var(--fg-muted,#aaa)">Judul Video</span>
+                <input v-model="editForm.title" maxlength="255" required
+                  style="width:100%;margin-top:4px;padding:10px 14px;border-radius:8px;border:1px solid var(--border,#333);background:var(--surface,#16181a);color:var(--fg,#e8dfcf);font-size:15px;box-sizing:border-box">
+              </label>
+
+              <label style="margin-top:14px;display:block;text-align:left">
+                <span style="font-size:13px;color:var(--fg-muted,#aaa)">Kategori</span>
+                <select v-model.number="editForm.category_id"
+                  style="width:100%;margin-top:4px;padding:10px 14px;border-radius:8px;border:1px solid var(--border,#333);background:var(--surface,#16181a);color:var(--fg,#e8dfcf);font-size:15px;box-sizing:border-box">
+                  <option :value="0">Tanpa kategori</option>
+                  <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.name }}</option>
+                </select>
+              </label>
+
+              <p class="muted" style="margin-top:14px;font-size:12px;text-align:left">
+                Slug: <code style="font-size:11px">{{ editing.slug }}</code> ·
+                Ukuran: {{ fmtSize(editing.size_bytes) }} ·
+                {{ fmtDate(editing.created_at) }}
+              </p>
+
+              <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+                <button class="button" @click="saveEdit" :disabled="saving||!editForm.title.trim()">
+                  <span class="material-symbols-rounded">save</span> {{ saving ? 'Menyimpan…' : 'Simpan' }}
+                </button>
+                <button class="button ghost" @click="editing=null">Batal</button>
+              </div>
+            </div>
+          </div>
         </div>
       `,
     }).mount(el);

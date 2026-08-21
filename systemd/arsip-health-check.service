@@ -1,0 +1,19 @@
+[Unit]
+Description=Arsip Layar Health Check (video integrity monitor)
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=oneshot
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/arsip-layar
+EnvironmentFile=-/etc/arsip-layar/env
+ExecStart=/usr/bin/php /var/www/arsip-layar/cli/health_check.php
+StandardOutput=append:/var/log/arsip-health-check.log
+StandardError=append:/var/log/arsip-health-check.log
+
+# Security hardening
+NoNewPrivileges=true
+ReadWritePaths=/var/www/arsip-layar/media /var/www/arsip-layar/storage /var/log
+PrivateTmp=true

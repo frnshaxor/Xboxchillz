@@ -1,0 +1,76 @@
+# ─── Dependencies ───
+node_modules/
+vendor/
+composer.lock
+
+# ─── IDE / Editor ───
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─── OS Files ───
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ─── PHP ───
+*.phar
+.env
+.env.local
+.env.production
+
+# ─── Logs ───
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ─── Backups ───
+*.bak
+*.bak-*
+*.backup
+*.backup-*
+storage/backups/
+
+# ─── Build ───
+dist/
+build/
+.cache/
+
+# ─── Temp / Uploads ───
+storage/uploads/*
+!storage/uploads/.gitignore
+storage/cache/*
+!storage/cache/.gitignore
+storage/framework/*
+!storage/framework/.gitignore
+
+# ─── Media (too large for Git) ───
+media/*
+!media/.gitignore
+
+# ─── Sandbox (unused) ───
+sandbox/
+
+# ─── Archives ───
+*.zip
+*.tar.gz
+*.rar
+
+# ─── Testing ───
+coverage/
+.phpunit.result.cache
+
+# ─── Misc ───
+*.sql.gz
+.eslintcache
+storage/eslint-report.json

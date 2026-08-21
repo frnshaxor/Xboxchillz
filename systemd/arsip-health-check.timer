@@ -1,0 +1,11 @@
+[Unit]
+Description=Arsip Layar Health Check Timer (every 10 min)
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=10min
+AccuracySec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

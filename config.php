@@ -167,8 +167,24 @@ function has_access(): bool {
 function grant_access(): void {
     $_SESSION['access_granted'] = true;
 }
+function grant_access_with_token(mysqli $db, int $tokenId): void {
+    grant_access();
+    $s = $db->prepare('SELECT label, created_at, expires_at FROM access_tokens WHERE id=?');
+    $s->bind_param('i', $tokenId); $s->execute();
+    $token = $s->get_result()->fetch_assoc();
+    if ($token) {
+        $_SESSION['access_token_id']        = $tokenId;
+        $_SESSION['access_token_label']      = $token['label'];
+        $_SESSION['access_token_created_at'] = $token['created_at'];
+        $_SESSION['access_token_expires_at'] = $token['expires_at'];
+    }
+}
 function revoke_access(): void {
     unset($_SESSION['access_granted']);
+    unset($_SESSION['access_token_id']);
+    unset($_SESSION['access_token_label']);
+    unset($_SESSION['access_token_created_at']);
+    unset($_SESSION['access_token_expires_at']);
 }
 function generate_token(int $length = 12): string {
     $chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // ambiguous chars removed (I, O, 0, 1)
@@ -187,6 +203,12 @@ function protected_media_url(string $path): string {
 /** Posters remain public metadata, while video files and HLS assets require access. */
 function poster_url(string $path): string {
     return '?page=poster&path=' . rawurlencode(ltrim(preg_replace('#^media/#', '', $path), '/'));
+}
+/** Preview clips are public — visitors can watch 15s before deciding to buy a token. */
+function preview_url(string $path): string {
+    $relative = ltrim(preg_replace('#^media/#', '', $path), '/');
+    $previewPath = preg_replace('#/source\.mp4$#', '/preview.mp4', $relative);
+    return '?page=preview&path=' . rawurlencode($previewPath);
 }
 function midtrans_endpoint(string $mode): string {
     return $mode === 'production'

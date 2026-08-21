@@ -1,0 +1,25 @@
+[Unit]
+Description=Arsip Layar Job Runner (HLS transcode queue)
+After=network.target mysql.service
+Wants=mysql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/arsip-layar
+EnvironmentFile=-/etc/arsip-layar/env
+ExecStart=/usr/bin/php /var/www/arsip-layar/cli/run_jobs.php --daemon
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=arsip-jobs
+
+# Security hardening
+NoNewPrivileges=true
+ReadWritePaths=/var/www/arsip-layar/media /var/www/arsip-layar/storage /var/lib/php/sessions
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,26 @@
+{
+  "name": "arsip-layar",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "> **Complete technical reference for AI agents and developers.** > Last updated: August 20, 2026",
+  "main": "sw.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "lint": "eslint public/assets/js/",
+    "lint:fix": "eslint public/assets/js/ --fix",
+    "lint:report": "eslint public/assets/js/ -f json -o storage/eslint-report.json",
+    "test": "echo \"No tests — use lint instead\" && npm run lint"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.1",
+    "eslint-plugin-tailwindcss": "^4.3.0",
+    "eslint-plugin-vue": "^10.10.0",
+    "eslint-plugin-vuejs-accessibility": "^2.6.0"
+  }
+}

@@ -11,9 +11,8 @@ function post_csrf_ok(): bool { return hash_equals($_SESSION['csrf'] ?? '', $_PO
 // -------- Public state --------
 if ($op === 'state') {
     j([
-        'csrf'  => csrf(),
-        'theme' => setting($db, 'theme_key', 'obsidian'),
-        'site'  => setting($db, 'site_name', 'Arsip Layar'),
+        'csrf' => csrf(),
+        'site' => setting($db, 'site_name', 'Arsip Layar'),
         'admin' => admin(),
     ]);
 }
@@ -77,17 +76,6 @@ if ($op === 'insights') {
     $devices = $q->get_result()->fetch_all(MYSQLI_ASSOC);
 
     j(compact('metrics', 'popular', 'sources', 'heatmap', 'retention', 'devices') + ['days' => $days]);
-}
-
-// -------- Change theme --------
-if ($op === 'theme' && $_SERVER['REQUEST_METHOD'] === 'POST') {
-    need_admin(); check_csrf();
-    $allowed = ['ivory', 'obsidian', 'emerald'];
-    $theme = $_POST['theme'] ?? '';
-    if (!in_array($theme, $allowed, true)) j(['error' => 'Tema tidak valid'], 422);
-    set_setting($db, 'theme_key', $theme);
-    log_activity($db, (int)$_SESSION['admin_id'], 'theme_change', $theme);
-    j(['ok' => true, 'theme' => $theme]);
 }
 
 // -------- Cache bust --------
@@ -291,7 +279,7 @@ if ($op === '2fa_disable' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 // -------- Token management (admin) --------
 if ($op === 'token_list') {
     need_admin();
-    $rows = $db->query('SELECT id, token, label, contact_type, contact_value, status, use_count, last_used_at, created_at FROM access_tokens ORDER BY created_at DESC')->fetch_all(MYSQLI_ASSOC);
+    $rows = $db->query('SELECT id, token, label, contact_type, contact_value, status, use_count, last_used_at, expires_at, created_at FROM access_tokens ORDER BY created_at DESC')->fetch_all(MYSQLI_ASSOC);
     j(['tokens' => $rows]);
 }
 
@@ -320,8 +308,9 @@ if ($op === 'token_create' && $_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $aid = (int)$_SESSION['admin_id'];
     $status = 'active';
-    $s = $db->prepare('INSERT INTO access_tokens(token, label, contact_type, contact_value, status, created_by) VALUES(?,?,?,?,?,?)');
-    $s->bind_param('sssssi', $tok, $label, $contact_type, $contact_value, $status, $aid);
+    $expiresAt = date('Y-m-d H:i:s', time() + 30 * 86400);
+    $s = $db->prepare('INSERT INTO access_tokens(token, label, contact_type, contact_value, status, created_by, expires_at) VALUES(?,?,?,?,?,?,?)');
+    $s->bind_param('sssssis', $tok, $label, $contact_type, $contact_value, $status, $aid, $expiresAt);
     $s->execute();
     $new_id = $db->insert_id;
     log_activity($db, $aid, 'token_create', "label=$label token=$tok");
@@ -329,6 +318,7 @@ if ($op === 'token_create' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         'id' => $new_id, 'token' => $tok, 'label' => $label,
         'contact_type' => $contact_type, 'contact_value' => $contact_value,
         'status' => $status, 'use_count' => 0, 'last_used_at' => null,
+        'expires_at' => $expiresAt,
         'created_at' => date('Y-m-d H:i:s'),
     ]]);
 }
@@ -483,15 +473,56 @@ if ($op === 'process_webhook_retries' && $_SERVER['REQUEST_METHOD'] === 'POST') 
             $db->query("UPDATE webhook_retry SET status='failed', last_error='invalid_payload' WHERE id=" . $wr['id']);
             continue;
         }
-        // Re-process: simulate the notify endpoint logic
-        // For safety, just mark as processed since the original webhook already ran
+        // Re-process: simulate the midtrans notify endpoint logic
+        $orderId = (string)($payload['order_id'] ?? '');
+        $statusCode = (string)($payload['status_code'] ?? '');
+        $grossAmount = (string)($payload['gross_amount'] ?? '');
+        $signature = (string)($payload['signature_key'] ?? '');
+        $serverKey = setting($db, 'midtrans_server_key', '');
+        $expected = hash('sha512', $orderId . $statusCode . $grossAmount . $serverKey);
+        $error = '';
+        if (!$serverKey || !$signature || !hash_equals($expected, $signature)) {
+            $error = 'signature_invalid';
+        } else {
+            $q = $db->prepare('SELECT * FROM payment_orders WHERE order_id=?');
+            $q->bind_param('s', $orderId); $q->execute();
+            $order = $q->get_result()->fetch_assoc();
+            if (!$order) {
+                $error = 'order_not_found';
+            } else {
+                $transactionStatus = (string)($payload['transaction_status'] ?? '');
+                $fraudStatus = (string)($payload['fraud_status'] ?? 'accept');
+                $newStatus = in_array($transactionStatus, ['settlement'], true) || ($transactionStatus === 'capture' && $fraudStatus === 'accept') ? 'settlement' : $transactionStatus;
+                $paymentType = substr((string)($payload['payment_type'] ?? ''), 0, 60);
+                $transactionId = substr((string)($payload['transaction_id'] ?? ''), 0, 100);
+                $json = json_encode($payload, JSON_UNESCAPED_UNICODE);
+                $tokenId = (int)($order['token_id'] ?? 0);
+                if ($newStatus === 'settlement' && !$tokenId) {
+                    $raw = generate_token(12); $token = substr($raw, 0, 4) . '-' . substr($raw, 4, 4) . '-' . substr($raw, 8, 4);
+                    $label = 'Midtrans — ' . $order['buyer_name']; $contactType = 'telegram'; $contact = $order['buyer_contact']; $active = 'active';
+                    $expiresAt = date('Y-m-d H:i:s', time() + 30 * 86400);
+                    $create = $db->prepare('INSERT INTO access_tokens(token,label,contact_type,contact_value,status,expires_at) VALUES(?,?,?,?,?,?)');
+                    $create->bind_param('ssssss', $token, $label, $contactType, $contact, $active, $expiresAt); $create->execute(); $tokenId = $db->insert_id;
+                }
+                $update = $db->prepare('UPDATE payment_orders SET status=?, token_id=?, midtrans_transaction_id=?, payment_type=?, notification_json=?, paid_at=IF(?="settlement",NOW(),paid_at) WHERE id=?');
+                $update->bind_param('sissssi', $newStatus, $tokenId, $transactionId, $paymentType, $json, $newStatus, $order['id']); $update->execute();
+            }
+        }
+        // Exponential backoff: 5m, 15m, 45m, 2h, 6h
+        $backoffMinutes = [5, 15, 45, 120, 360];
         $newStatus = 'processed';
         $nextRetry = null;
-        if ($attempts >= (int)$wr['max_attempts']) {
-            $newStatus = 'failed';
+        if ($error) {
+            if ($attempts >= (int)$wr['max_attempts']) {
+                $newStatus = 'failed';
+            } else {
+                $newStatus = 'pending';
+                $idx = min($attempts, count($backoffMinutes) - 1);
+                $nextRetry = date('Y-m-d H:i:s', time() + $backoffMinutes[$idx] * 60);
+            }
         }
-        $u = $db->prepare('UPDATE webhook_retry SET status=?, attempts=?, next_retry_at=? WHERE id=?');
-        $u->bind_param('sisi', $newStatus, $attempts, $nextRetry, $wr['id']);
+        $u = $db->prepare('UPDATE webhook_retry SET status=?, attempts=?, next_retry_at=?, last_error=? WHERE id=?');
+        $u->bind_param('sissi', $newStatus, $attempts, $nextRetry, $error, $wr['id']);
         $u->execute();
         $processed++;
     }
