@@ -1448,6 +1448,7 @@ If `hls.levels` parsing fails to extract heights, `qualityOptions` would be `[0]
 
 ### 21.3 Fixes Applied
 
+**Round 1:**
 | # | Severity | Bug | Fix | File |
 |---|----------|-----|-----|------|
 | 1 | 🔴 CRITICAL | `capLevelToPlayerSize: true` overrides manual quality | Set `capLevelToPlayerSize: false` | `vue_enhance.js` |
@@ -1457,6 +1458,13 @@ If `hls.levels` parsing fails to extract heights, `qualityOptions` would be `[0]
 | 5 | 🟡 MEDIUM | CSS active state overridden by Tailwind CDN | Add `!important` (Gotcha 6) | `style.css` |
 | 6 | 🟢 LOW | No smooth transition on button highlight | Add CSS transition | `style.css` |
 | 7 | 🟢 LOW | ESLint warnings increased from catch blocks | Add `void e` to maintain baseline | `vue_enhance.js` |
+
+**Round 2 (after Round 1 still didn't work):**
+| # | Severity | Bug | Fix | File |
+|---|----------|-----|-----|------|
+| 8 | 🔴 CRITICAL | `applyQuality` → `player.quality` setter → fires `qualitychange` → re-entrant infinite loop | Add `_syncing` guard + `fromPlyr` flag | `vue_enhance.js` |
+| 9 | 🔴 CRITICAL | `<source type="application/x-mpegURL">` conflicts with HLS.js MediaSource | Remove elements when HLS.js path is taken | `vue_enhance.js` |
+| 10 | 🟠 HIGH | Level matching fragile — `findIndex` by exact height could return -1 | Sorted height-to-index map with closest fallback | `vue_enhance.js` |
 
 ### 21.4 Verification
 

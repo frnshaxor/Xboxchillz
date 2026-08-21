@@ -6,32 +6,31 @@
 
 ---
 
-## 2026-08-21 (HLS Quality Picker Fix)
+## 2026-08-21 (HLS Quality Picker Fix — Round 1 + 2)
 
 ### 🔴 Bug Fix: Perbaiki HLS Quality Picker Tidak Berfungsi
 
 **Problem:** Tombol kualitas video (Auto/720p/360p) di halaman watch tidak berfungsi sejak pertama kali diimplementasikan. Klik tombol kualitas tidak mengubah resolusi video dan tidak ada perubahan visual (highlight tetap di Auto). Selain itu, Plyr gear icon tidak menampilkan opsi Quality.
 
-**Root Cause:**
+**Root Causes (Round 1 — 4 issues):**
 1. `capLevelToPlayerSize: true` pada HLS.js — secara otomatis membatasi kualitas berdasarkan ukuran player, mengoverride perubahan manual
-2. Custom quality buttons dan Plyr quality system tidak tersinkronisasi — Plyr internal state tidak diupdate saat tombol custom diklik
+2. Custom quality buttons dan Plyr quality system tidak tersinkronisasi
 3. Tidak ada persistensi kualitas — setiap refresh selalu reset ke Auto
-4. Plyr settings termasuk `speed` tapi `quality` tidak muncul karena Heights array bisa kosong
+4. Plyr settings termasuk `speed` tapi `quality` tidak muncul karena heights array bisa kosong
 
-**Fix:**
-1. Set `capLevelToPlayerSize: false` — HLS.js tidak lagi mengoverride perubahan manual
-2. Buat `applyQuality()` helper — menyatukan logic: set `hls.currentLevel`, `markQuality()`, localStorage, dan sync Plyr quality
-3. Tambah localStorage persistence (`arsip-quality`) — kualitas tersimpan dan dipulihkan saat refresh
-4. Hapus `speed` dari Plyr settings, ganti dengan `quality` — gear icon sekarang menampilkan opsi kualitas
-5. Tambah fallback quality options `[0, 720, 360]` jika heights array kosong — Plyr selalu menampilkan quality di gear
-6. Tambah `!important` pada `.quality-picker button.active` CSS — mencegah Tailwind CDN override (Gotcha 6)
-7. Tambah transisi CSS pada quality buttons — animasi smooth saat ganti kualitas
-8. Tambah `void e` pada catch blocks — mengembalikan ESLint baseline ke 25 warnings
+**Root Causes (Round 2 — 3 additional critical bugs):**
+5. **Infinite loop**: `applyQuality` → `player.quality = quality` → fires `qualitychange` → calls `applyQuality` again → stack overflow
+6. **Source conflict**: `<source type="application/x-mpegURL">` elements fight with HLS.js MediaSource
+7. **Level matching fragility**: `findIndex` by exact height could fail — need sorted map with closest fallback
+
+**Fixes:**
+- Round 1: `capLevelToPlayerSize: false`, `applyQuality()` helper, localStorage persistence, Plyr gear quality, CSS `!important` + transitions, ESLint baseline
+- Round 2: `_syncing` re-entrant guard, remove conflicting `<source>` elements, sorted height-to-index map with closest height fallback, `fromPlyr` flag to prevent Plyr→Plyr sync loop
 
 **Files Modified:**
 | File | Changes |
 |------|---------|
-| `public/assets/js/vue_enhance.js` | Rewrite `initPlyr()` — fix HLS quality switching, add localStorage, sync Plyr |
+| `public/assets/js/vue_enhance.js` | Rewrite `initPlyr()` — fix 3 critical bugs |
 | `public/assets/css/style.css` | Add `!important` on `.quality-picker button.active`, add transition |
 | `style.css` | Synced from public CSS |
 
@@ -42,7 +41,7 @@
 - ✅ Plyr gear icon shows Quality option (replacing Speed)
 - ✅ Quality selection persists via localStorage
 
-**Audit:** See `audit.md` Section 19
+**Audit:** See `audit.md` Section 21
 
 ---
 
