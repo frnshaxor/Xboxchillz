@@ -1,6 +1,6 @@
 // Arsip Layar — Service Worker
 // Cache-first for static assets, network-first for dynamic content
-const CACHE_NAME = 'arsip-v2';
+const CACHE_NAME = 'arsip-v3';
 const STATIC_ASSETS = [
   '/',
   '/assets/css/style.css',
