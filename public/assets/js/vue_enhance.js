@@ -613,9 +613,6 @@
     });
 
     if (hlsSrc && !video.canPlayType('application/vnd.apple.mpegurl') && window.Hls && window.Hls.isSupported()) {
-      // Remove <source> elements with HLS type — they conflict with HLS.js
-      $$('source[type*="mpegURL"], source[type*="mpegurl"]', video).forEach(function (s) { s.remove(); });
-
       const hls = new Hls({ enableWorker: true, lowLatencyMode: false, capLevelToPlayerSize: false, backBufferLength: 90 });
       hls.loadSource(hlsSrc);
       hls.attachMedia(video);
@@ -631,6 +628,8 @@
         // Plyr quality options: [0=Auto, ...sorted heights]
         const heights = sortedLevels.map(function (l) { return l.height; });
         const opts = heights.length > 0 ? [0].concat(heights) : [0, 720, 360];
+        // Remove <source> elements BEFORE creating Plyr — they conflict with HLS.js
+        $$('source[type*="mpegURL"], source[type*="mpegurl"]', video).forEach(function (s) { s.remove(); });
         const player = createPlayer(opts);
 
         // Core: set HLS level from button quality value
