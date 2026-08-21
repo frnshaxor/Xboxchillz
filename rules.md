@@ -757,13 +757,12 @@ AI decides when to commit based on:
 
 > Extracted from `audit.md` and `README.md`. AI agents MUST be aware of these before making changes.
 
-### Gotcha 1: Two Entry Points (Legacy vs New) [README.md 10.1]
+### Gotcha 1: Entry Point [README.md 10.1]
 
-The project has TWO `index.php` files:
-- **`public/index.php`** (55 lines) — NEW MVC entry point. **This is what nginx uses.**
-- **`index.php`** (997 lines) — LEGACY monolith. **NOT used by nginx.**
+The project has ONE entry point:
+- **`public/index.php`** (55 lines) — MVC entry point. **This is what nginx uses.**
 
-**Rule:** When modifying routes or controllers, **only** modify files in `public/`, `app/`, `controllers/`, `routes/`, `views/`. Never modify root `index.php` or `config.php` for the live site.
+**Rule:** When modifying routes or controllers, **only** modify files in `public/`, `app/`, `controllers/`, `routes/`, `views/`.
 
 ### Gotcha 2: Media Never Served Directly by Nginx [README.md 10.3]
 

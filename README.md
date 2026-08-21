@@ -775,20 +775,17 @@ preview_url('media/slug/source.mp4')
 
 ## 10. Known Issues & Gotchas
 
-### 10.1 Two Entry Points (Legacy vs New)
+### 10.1 Entry Point
 
-The project has TWO `index.php` files:
-- **`public/index.php`** (55 lines) — NEW MVC entry point. This is what nginx uses.
-- **`index.php`** (997 lines) — LEGACY monolith. Contains inline upload, watch, admin, media serving code. NOT used by nginx but still present in the repo.
+The project has ONE entry point:
+- **`public/index.php`** (55 lines) — MVC entry point. This is what nginx uses.
 
-**When modifying routes or controllers, only modify the `public/` + `app/` + `controllers/` + `routes/` + `views/` files.** The root `index.php` and `config.php` are legacy.
+**When modifying routes or controllers, only modify the `public/` + `app/` + `controllers/` + `routes/` + `views/` files.**
 
-### 10.2 Bootstrap vs Config
+### 10.2 Bootstrap
 
-- **`app/bootstrap.php`** — Used by the new MVC architecture
-- **`config.php`** — Used by the legacy root `index.php`
-
-Both define similar functions (`e()`, `csrf()`, `setting()`, etc.). The new bootstrap loads `app/helpers.php` instead of defining them inline.
+- **`app/bootstrap.php`** — Used by the MVC architecture
+- **`app/helpers.php`** — 30+ pure functions: `e()`, `csrf()`, `setting()`, `totp`, `rate_limit`
 
 ### 10.3 Media Serving
 

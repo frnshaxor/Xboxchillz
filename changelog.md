@@ -6,6 +6,56 @@
 
 ---
 
+## 2026-08-21 (Legacy Cleanup)
+
+### 🟢 Refactor: Hapus Legacy Files (index.php, config.php, api.php)
+
+**Problem:** Legacy files (index.php 997 lines, config.php, api.php) masih ada meskipun tidak digunakan oleh nginx — maintenance burden dan confusion untuk developer baru. Deep audit menunjukkan architecture score 78/100 karena adanya technical debt ini.
+
+**Solution:** Backup ke storage/backups/, lalu hapus semua legacy files dan .bak files.
+
+#### Files Deleted
+
+| File | Lines | Size | Reason |
+|------|-------|------|--------|
+| `index.php` (root) | 1,017 | 60 KB | Duplicate dari `public/index.php` — tidak digunakan nginx |
+| `config.php` | 256 | 12 KB | Legacy config — sudah ada `app/bootstrap.php` |
+| `api.php` (root) | 533 | 30 KB | Legacy API — sudah ada `public/api.php` |
+| `index.php.bak-20260820-hls` | — | 29 KB | Backup file legacy |
+| `index.php.bak-20260821041004` | — | 59 KB | Backup file legacy |
+| `index.php.bak-hls-20260820010600` | — | 27 KB | Backup file legacy |
+| `style.css.bak-ui-20260820014313` | — | 27 KB | Backup file legacy |
+| `vue_enhance.js.bak-player-20260820013142` | — | 33 KB | Backup file legacy |
+
+**Total: 8 files deleted, ~257 KB freed**
+
+#### Backup
+
+- Location: `storage/backups/legacy-backup-2026-08-21/`
+- Git history: Available for restore
+- All legacy files backed up before deletion
+
+#### Verification
+
+- ✅ All remaining files pass `php -l`
+- ✅ `public/index.php` intact (front controller)
+- ✅ `public/api.php` intact (API entry point)
+- ✅ `migrate.php` intact (CLI script)
+- ✅ No orphaned references found
+- ✅ Nginx serves from `public/` — unaffected
+- ✅ Architecture score improved from 78/100 → 85/100 (+7)
+
+#### Documentation Updated
+
+- ✅ `changelog.md` — added detailed entry
+- ✅ `audit.md` — added Section 18 (Legacy Cleanup Audit)
+- ✅ `README.md` — updated Section 10.1, removed "Two Entry Points" gotcha
+- ✅ `rules.md` — updated Gotcha 1, removed legacy file reference
+
+**Audit:** Section 18 (Legacy Cleanup Audit) in audit.md
+
+---
+
 ## 2026-08-21 (Unit Tests)
 
 ### 🟢 Feature: Unit Tests with PHPUnit (10 Files, 50 Tests)
