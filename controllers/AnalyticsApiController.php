@@ -48,6 +48,9 @@ class AnalyticsApiController
     public function recordHeatmap(): void
     {
         $body = json_decode(file_get_contents('php://input'), true) ?? $_POST;
+        if (empty($body['csrf'])) {
+            Response::json(['error' => 'Token tidak valid'], 419);
+        }
         $videoId = (int) ($body['video_id'] ?? 0);
         $seconds = (string) ($body['seconds'] ?? '');
         if ($videoId && $seconds) {
